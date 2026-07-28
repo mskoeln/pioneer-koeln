@@ -159,7 +159,7 @@ def main():
     tpl_path = HERE / "template.html"
     if not tpl_path.exists():
         fail("template.html fehlt.")
-    tpl = tpl_path.read_text(encoding="utf-8")
+    tpl = tpl_path.read_text(encoding="utf-8").replace("\r\n", "\n")
     if PLACEHOLDER not in tpl:
         fail(f"Platzhalter {PLACEHOLDER} fehlt in template.html.")
 
@@ -167,8 +167,10 @@ def main():
     if "</script" in payload:
         fail("Daten enthalten ein script-Tag.")
 
+    # newline="\n" erzwingen: sonst schreibt Python unter Windows CRLF und
+    # unter Linux LF, und die Datei sieht je nach Buildrechner anders aus.
     out = HERE / "index.html"
-    out.write_text(tpl.replace(PLACEHOLDER, payload), encoding="utf-8")
+    out.write_text(tpl.replace(PLACEHOLDER, payload), encoding="utf-8", newline="\n")
     print(f"Geschrieben: {out.name} ({out.stat().st_size:,} Bytes)")
 
 
