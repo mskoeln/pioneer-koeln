@@ -1,0 +1,13 @@
+# Lokale Arbeitsdateien
+*.xlsx
+*.json
+!.github/**/*.json
+
+# Betriebssystem / Editor
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
+__pycache__/
+*.pyc

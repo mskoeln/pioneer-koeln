@@ -1,0 +1,1520 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pioneer Statistik</title>
+<style>
+  :root{
+    color-scheme: light;
+    --page:#f9f9f7; --surface:#fcfcfb;
+    --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+    --wash:rgba(11,11,11,.035); --wash-2:rgba(11,11,11,.06);
+    --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4;
+    --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+    --n1:#898781; --n2:#b3b1aa;
+    --pos:#2a78d6; --neg:#e34948; --mid:#f0efec;
+    --good:#006300;
+    --r:10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:where(:not([data-theme="light"])){
+      color-scheme: dark;
+      --page:#0d0d0d; --surface:#1a1a19;
+      --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+      --wash:rgba(255,255,255,.04); --wash-2:rgba(255,255,255,.07);
+      --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+      --s6:#008300; --s7:#9085e9; --s8:#e66767;
+      --n1:#898781; --n2:#5f5e5a;
+      --pos:#3987e5; --neg:#e66767; --mid:#383835;
+      --good:#0ca30c;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --page:#0d0d0d; --surface:#1a1a19;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --wash:rgba(255,255,255,.04); --wash-2:rgba(255,255,255,.07);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+    --s6:#008300; --s7:#9085e9; --s8:#e66767;
+    --n1:#898781; --n2:#5f5e5a;
+    --pos:#3987e5; --neg:#e66767; --mid:#383835;
+    --good:#0ca30c;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--page); color:var(--ink);
+    font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:0 20px 72px}
+
+  /* ---------- header ---------- */
+  header.top{padding:40px 0 22px}
+  .eyebrow{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  h1{margin:6px 0 6px; font-size:clamp(28px,5vw,40px); line-height:1.1; letter-spacing:-.02em; font-weight:650}
+  .lede{margin:0; color:var(--ink-2); max-width:62ch}
+  .themebtn{
+    position:absolute; top:34px; right:20px;
+    background:var(--surface); color:var(--ink-2); border:1px solid var(--border);
+    border-radius:999px; padding:7px 13px; font:inherit; font-size:13px; cursor:pointer;
+  }
+  .themebtn:hover{background:var(--wash-2)}
+  .top{position:relative}
+
+  /* ---------- filter row ---------- */
+  .filterbar{
+    position:sticky; top:0; z-index:20; margin:0 -20px; padding:12px 20px;
+    background:color-mix(in srgb, var(--page) 88%, transparent);
+    backdrop-filter:blur(8px); border-bottom:1px solid var(--border);
+  }
+  .filterrow{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .filterrow > .flabel{font-size:12px; font-weight:600; color:var(--muted); letter-spacing:.04em; text-transform:uppercase; margin-right:2px}
+  .pill{
+    border:1px solid var(--border); background:var(--surface); color:var(--ink-2);
+    border-radius:999px; padding:6px 13px; font:inherit; font-size:13.5px; cursor:pointer;
+    white-space:nowrap; transition:background .12s,color .12s;
+  }
+  .pill:hover{background:var(--wash-2)}
+  .pill[aria-pressed="true"]{background:var(--ink); color:var(--page); border-color:var(--ink); font-weight:550}
+  /* Rollierende Fenster als eigene Familie: weichere Ecken, getönte Fläche,
+     keine Umrandung — dadurch klar von den Kalenderjahren unterscheidbar. */
+  .pill.roll{border-radius:8px; background:var(--wash-2); border-color:transparent}
+  .pill.roll:hover{background:var(--wash)}
+  .pill.roll[aria-pressed="true"]{background:var(--ink); color:var(--page); border-color:var(--ink)}
+  .fgroup{display:flex; align-items:center; gap:7px}
+  .glabel{
+    font-size:10.5px; font-weight:650; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--muted); white-space:nowrap;
+  }
+  .gshort{display:none}
+  .sep{width:1px; height:22px; background:var(--border); margin:0 7px; flex:none}
+
+  /* ---------- sections ---------- */
+  section{margin-top:44px}
+  .shead{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:4px}
+  h2{margin:0; font-size:20px; letter-spacing:-.01em; font-weight:620}
+  .snote{margin:0 0 18px; color:var(--ink-2); font-size:13.5px; max-width:72ch}
+  .divider{margin-top:56px; border-top:1px solid var(--border); padding-top:8px}
+
+  /* ---------- stat tiles ---------- */
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px}
+  .tile{background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:16px 18px}
+  .tile .lab{font-size:12.5px; color:var(--ink-2); margin-bottom:6px}
+  .tile .val{font-size:30px; font-weight:620; letter-spacing:-.02em; line-height:1.1}
+  .tile .sub{font-size:12px; color:var(--muted); margin-top:4px}
+
+  /* ---------- card ---------- */
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:20px}
+  .cardhead{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:2px; flex-wrap:wrap}
+  h3{margin:0; font-size:15.5px; font-weight:600}
+  .chint{margin:2px 0 16px; font-size:12.5px; color:var(--muted)}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media (max-width:820px){ .grid2{grid-template-columns:1fr} }
+
+  .toggle{
+    border:1px solid var(--border); background:transparent; color:var(--ink-2);
+    border-radius:7px; padding:4px 10px; font:inherit; font-size:12.5px; cursor:pointer;
+  }
+  .toggle:hover{background:var(--wash-2)}
+
+  /* ---------- bar rows ---------- */
+  .bars{display:flex; flex-direction:column; gap:9px}
+  .brow{display:grid; grid-template-columns:minmax(96px,148px) 1fr; align-items:center; gap:12px; cursor:default}
+  .bname{
+    font-size:13px; color:var(--ink-2); text-align:right;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .btrack{position:relative; height:14px; display:flex; align-items:center}
+  .bfill{height:14px; border-radius:0 4px 4px 0; background:var(--s1)}
+  .bfill.other{background:var(--muted)}
+  .bval{
+    position:absolute; font-size:12px; color:var(--ink-2); white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+  }
+  .brow:hover .bname{color:var(--ink)}
+
+  /* diverging */
+  /* diverging: eigene Wertspalte rechts, damit nichts beschnitten wird */
+  .brow.wr,.daxis{grid-template-columns:minmax(96px,148px) 1fr 52px}
+  .dtrack{position:relative; height:14px}
+  .dmid{position:absolute; top:-4px; bottom:-4px; width:1px; background:var(--axis)}
+  .dfill{position:absolute; height:14px}
+  .dfill.pos{background:var(--pos); border-radius:0 4px 4px 0}
+  .dfill.neg{background:var(--neg); border-radius:4px 0 0 4px}
+  .dval{font-size:12px; color:var(--ink-2); text-align:right; font-variant-numeric:tabular-nums}
+  .brow.wr:hover .dval{color:var(--ink)}
+  .daxis{display:grid; gap:12px; margin-top:8px}
+  .dticks{position:relative; height:14px; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums}
+  .dticks span{position:absolute; transform:translateX(-50%)}
+  .dticks span.edge-l{transform:none}
+  .dticks span.edge-r{transform:translateX(-100%)}
+
+  /* ---------- legend ---------- */
+  .legend{display:flex; flex-wrap:wrap; gap:14px; margin:0 0 12px}
+  .lg{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-2)}
+  .lg .key{width:14px; height:2px; border-radius:2px; flex:none}
+  .lg .keybox{width:11px; height:11px; border-radius:3px; flex:none}
+
+  /* ---------- Kuchendiagramm ---------- */
+  .legend-pie{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:6px 14px; margin:14px 0 0}
+  .legend-pie .lg{gap:8px}
+  .legend-pie .lgname{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .legend-pie .lgval{margin-left:auto; color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums}
+  .legend-pie .lg.on .lgname{color:var(--ink)}
+  .pieseg{fill:none; stroke-linecap:butt; cursor:default; transition:opacity .1s}
+  .pieseg-fill{stroke:none; transition:opacity .1s}
+  .piectr-v{fill:var(--ink); font-size:22px; font-weight:620; text-anchor:middle}
+  .piectr-l{fill:var(--muted); font-size:11px; text-anchor:middle}
+
+  /* ---------- svg chart ---------- */
+  .chartbox{position:relative}
+  svg.chart{display:block; width:100%; height:auto; overflow:visible}
+  .gridline{stroke:var(--grid); stroke-width:1}
+  .axisline{stroke:var(--axis); stroke-width:1}
+  .tick{fill:var(--muted); font-size:11px; font-variant-numeric:tabular-nums}
+  .endlab{fill:var(--ink-2); font-size:11.5px; font-variant-numeric:tabular-nums}
+  .leader{stroke:var(--axis); stroke-width:1}
+  .crosshair{stroke:var(--axis); stroke-width:1; pointer-events:none}
+  .hitband{fill:transparent; cursor:crosshair}
+
+  /* ---------- tooltip ---------- */
+  .tip{
+    position:fixed; z-index:60; pointer-events:none; opacity:0; transition:opacity .1s;
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    padding:9px 11px; font-size:12.5px; box-shadow:0 6px 20px rgba(0,0,0,.13);
+    min-width:150px; max-width:260px;
+  }
+  .tip.on{opacity:1}
+  .tip .tt{font-weight:620; font-size:12.5px; margin-bottom:6px; color:var(--ink)}
+  .tip .tr{display:flex; align-items:center; gap:8px; margin-top:3px}
+  .tip .tr .key{width:12px; height:2px; border-radius:2px; flex:none}
+  .tip .tr .tv{font-weight:620; color:var(--ink); font-variant-numeric:tabular-nums; margin-left:auto}
+  .tip .tr .tn{color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .tip .tsub{margin-top:6px; padding-top:6px; border-top:1px solid var(--border); color:var(--muted); font-size:11.5px}
+
+  /* ---------- tables ---------- */
+  .tablewrap{overflow-x:auto; -webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse; width:100%; font-size:13px}
+  caption{text-align:left; color:var(--muted); font-size:12px; padding-bottom:8px}
+  th,td{padding:7px 10px; text-align:right; white-space:nowrap}
+  th:first-child,td:first-child{text-align:left; white-space:normal; min-width:130px}
+  thead th{
+    position:sticky; top:0; background:var(--surface); color:var(--ink-2);
+    font-weight:600; font-size:12px; border-bottom:1px solid var(--axis);
+    cursor:pointer; user-select:none;
+  }
+  thead th:hover{color:var(--ink)}
+  thead th .ar{opacity:.35; font-size:9px; margin-left:3px}
+  thead th[aria-sort] .ar{opacity:1}
+  tbody tr{border-bottom:1px solid var(--border)}
+  tbody tr:hover{background:var(--wash)}
+  tbody td{font-variant-numeric:tabular-nums; color:var(--ink-2)}
+  tbody td:first-child{color:var(--ink)}
+  .rank{color:var(--muted); font-variant-numeric:tabular-nums; width:34px; min-width:34px!important; text-align:right!important}
+  .dot{display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:7px; vertical-align:-1px}
+  .medal{font-size:12px}
+  .tscroll{max-height:520px; overflow-y:auto}
+  .search{
+    border:1px solid var(--border); background:var(--page); color:var(--ink);
+    border-radius:7px; padding:6px 11px; font:inherit; font-size:13px; width:190px;
+  }
+  .search::placeholder{color:var(--muted)}
+  .empty{padding:26px 4px; color:var(--muted); font-size:13.5px}
+  .hidden{display:none}
+
+  /* ---------- footer ---------- */
+  footer{margin-top:56px; border-top:1px solid var(--border); padding-top:20px; color:var(--ink-2); font-size:13px}
+  footer h4{margin:0 0 8px; font-size:13.5px; color:var(--ink); font-weight:600}
+  footer ul{margin:0 0 16px; padding-left:20px}
+  footer li{margin:3px 0}
+  footer code{background:var(--wash-2); padding:1px 5px; border-radius:4px; font-size:12px}
+
+  @media (max-width:640px){
+    .brow,.daxis{grid-template-columns:minmax(78px,104px) 1fr; gap:9px}
+    .brow.wr,.daxis{grid-template-columns:minmax(78px,104px) 1fr 46px}
+    .bname{font-size:12px}
+    .card{padding:15px}
+    .tile .val{font-size:25px}
+    /* Umbruch vor der Gruppe "Letzte Tage": Ewige Liste + Jahre oben,
+       die rollierenden Fenster in einer eigenen Zeile darunter. */
+    /* Enge Abstände, damit "Ewige Liste" und die fünf Jahre in eine Zeile
+       passen; die Gruppe "Tage" bekommt darunter ihre eigene. */
+    .filterrow{flex-wrap:wrap; row-gap:6px; column-gap:5px}
+    .filterrow > .flabel{display:none}
+    /* Trennstriche entfallen: den Umbruch, das Label "Tage" und die eigene
+       Pillenform tragen die Gruppierung hier bereits. */
+    .filterrow .sep{display:none}
+    .fgroup{flex-wrap:wrap; row-gap:6px; column-gap:4px}
+    .fgroup-roll{flex:1 0 100%}
+    .filterbar{padding:8px 20px}
+    .pill{padding:6px 8px; font-size:12.5px}
+    /* "Jahre" ist bei Jahreszahlen selbsterklärend und entfällt; "Letzte Tage"
+       wird zu "Tage" gekürzt, damit die Gruppe in eine Zeile passt. */
+    .glabel{font-size:10px; letter-spacing:.06em}
+    .glabel-wide{display:none}
+    .glong{display:none}
+    .gshort{display:inline}
+  }
+  @media print{ .filterbar,.themebtn,.toggle{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <button class="themebtn" id="themebtn" type="button">Dunkel</button>
+  <div class="eyebrow">Pioneer · Köln</div>
+  <h1>Turnierstatistik</h1>
+  <p class="lede" id="lede"></p>
+</header>
+
+<div class="filterbar">
+  <div class="filterrow" id="filterrow" role="group" aria-label="Zeitraum">
+    <span class="flabel">Zeitraum</span>
+  </div>
+</div>
+
+<section id="sec-stats" aria-label="Kennzahlen">
+  <div class="tiles" id="tiles"></div>
+</section>
+
+<section>
+  <div class="shead"><h2>Rangliste</h2></div>
+  <p class="snote" id="playernote"></p>
+  <div class="card">
+    <div class="cardhead">
+      <h3>Spieler</h3>
+      <input class="search" id="player-search" type="search" placeholder="Spieler suchen…" aria-label="Spieler suchen">
+    </div>
+    <p class="chint">Sortiert nach Punkten. Spaltenkopf anklicken zum Umsortieren.</p>
+    <div class="tablewrap"><div class="tscroll">
+      <table id="player-table"><thead></thead><tbody></tbody></table>
+    </div></div>
+    <div class="empty hidden" id="player-empty">Kein Spieler gefunden.</div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><h2>Deck-Meta</h2></div>
+  <p class="snote" id="metanote"></p>
+  <div class="grid2">
+    <div class="card">
+      <div class="cardhead">
+        <h3>Anteil der Meta</h3>
+        <button class="toggle" id="share-toggle" type="button" aria-pressed="false">Kuchendiagramm</button>
+      </div>
+      <p class="chint" id="share-hint">Gespielte Spiele je Deck, in Prozent aller Spiele im Zeitraum.</p>
+      <div class="bars" id="chart-share"></div>
+      <div class="hidden" id="chart-pie">
+        <div class="chartbox" id="pie-box">
+          <svg class="chart" id="pie-svg" role="img" aria-label="Anteil der Meta als Kuchendiagramm"></svg>
+        </div>
+        <div class="legend legend-pie" id="pie-legend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="cardhead">
+        <h3>Siegquote</h3>
+      </div>
+      <p class="chint">Abweichung von 50 %. Reihenfolge nach Anteil der Meta.</p>
+      <div class="bars" id="chart-wr"></div>
+      <div class="daxis"><div></div><div class="dticks" id="wr-ticks"></div></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="cardhead">
+      <h3>Alle Decks</h3>
+      <input class="search" id="deck-search" type="search" placeholder="Deck suchen…" aria-label="Deck suchen">
+    </div>
+    <p class="chint">Spaltenkopf anklicken zum Sortieren.</p>
+    <div class="tablewrap"><div class="tscroll">
+      <table id="deck-table"><thead></thead><tbody></tbody></table>
+    </div></div>
+    <div class="empty hidden" id="deck-empty">Kein Deck gefunden.</div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><h2>Entwicklung</h2></div>
+  <p class="snote" id="trendnote"></p>
+  <div class="card">
+    <div class="cardhead">
+      <h3 id="trend-title">Anteil der Meta</h3>
+      <button class="toggle" id="trend-toggle" type="button" aria-expanded="false">Tabelle anzeigen</button>
+    </div>
+    <p class="chint" id="trendhint"></p>
+    <div class="legend" id="trend-legend"></div>
+    <div class="chartbox" id="trend-box"><svg class="chart" id="trend-svg" role="img" aria-label="Meta-Anteil der Top-5-Decks je Jahr"></svg></div>
+    <div class="tablewrap hidden" id="trend-table-wrap" style="margin-top:16px">
+      <table id="trend-table"><thead></thead><tbody></tbody></table>
+    </div>
+  </div>
+</section>
+
+<section class="divider">
+  <div class="shead"><h2>Turniere</h2></div>
+  <p class="snote" id="tournote"></p>
+  <div class="card">
+    <div class="cardhead">
+      <h3>Ergebnisse</h3>
+      <input class="search" id="tour-search" type="search" placeholder="Spieler oder Deck…" aria-label="Turniere durchsuchen">
+    </div>
+    <p class="chint">Neueste zuerst.</p>
+    <div class="tablewrap"><div class="tscroll">
+      <table id="tour-table"><thead></thead><tbody></tbody></table>
+    </div></div>
+    <div class="empty hidden" id="tour-empty">Kein Ergebnis gefunden.</div>
+  </div>
+</section>
+
+<footer>
+  <h4>Methodik</h4>
+  <ul>
+    <li><strong>Anteil der Meta</strong> = Spiele des Decks ÷ alle Spiele im Zeitraum. Alle Anteile eines Zeitraums summieren sich auf 100 %.</li>
+    <li><strong>Siegquote Deck</strong> = Siege ÷ Spiele. Unentschieden zählen wie Niederlagen — so wie in der bisherigen Deck-Auswertung.</li>
+    <li><strong>Winrate Spieler</strong> = (Siege + ½ · Unentschieden) ÷ Spiele — so wie in der bisherigen Spieler-Auswertung.</li>
+    <li><strong>Punkte</strong> = 3 · Siege + 1 · Unentschieden.</li>
+    <li><strong>Punkte pro Spiel</strong> = Punkte ÷ Spiele.</li>
+    <li>Zeitfenster wie „90 Tage" zählen ab dem <em>letzten erfassten Turniertag</em>, nicht ab heute.</li>
+  </ul>
+  <h4>Datenstand</h4>
+  <p id="footdata" style="margin:0"></p>
+</footer>
+
+</div>
+
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script type="application/json" id="data">[{"d":"2022-09-13","p":1,"s":"Frank","k":"Izzet Control","w":3,"l":0,"t":0,"g":3},{"d":"2022-09-13","p":2,"s":"Julius","k":"Rakdos Sacrifice","w":2,"l":1,"t":0,"g":3},{"d":"2022-09-13","p":3,"s":"Jonas G.","k":"4/5c Incarnation","w":2,"l":1,"t":0,"g":3},{"d":"2022-09-13","p":4,"s":"Basti","k":"Azorius Control","w":1,"l":2,"t":0,"g":3},{"d":"2022-09-13","p":5,"s":"Lukas K.","k":"Esper Control","w":1,"l":2,"t":0,"g":3},{"d":"2022-09-13","p":6,"s":"Philipp","k":"Bant Spirits","w":0,"l":3,"t":0,"g":3},{"d":"2022-09-20","p":1,"s":"Frank","k":"Izzet Prowess","w":3,"l":0,"t":0,"g":3},{"d":"2022-09-20","p":2,"s":"Jonas G.","k":"Green Devotion","w":2,"l":1,"t":0,"g":3},{"d":"2022-09-20","p":3,"s":"Philipp","k":"4/5c Incarnation","w":2,"l":1,"t":0,"g":3},{"d":"2022-09-20","p":4,"s":"Steven","k":"Azorius Spirits","w":1,"l":1,"t":1,"g":3},{"d":"2022-09-20","p":5,"s":"Joshi","k":"Dimir Control","w":0,"l":1,"t":1,"g":2},{"d":"2022-09-20","p":6,"s":"Basti","k":"Izzet Phoenix","w":0,"l":2,"t":0,"g":2},{"d":"2022-09-20","p":7,"s":"Moritz","k":"Mono U Spirits","w":0,"l":2,"t":0,"g":2},{"d":"2022-09-27","p":1,"s":"Stefan","k":"Rakdos Midrange","w":3,"l":0,"t":0,"g":3},{"d":"2022-09-27","p":2,"s":"Frank","k":"UR+ Creativity","w":2,"l":1,"t":0,"g":3},{"d":"2022-09-27","p":3,"s":"Stephan","k":"Rakdos Sacrifice","w":2,"l":1,"t":0,"g":3},{"d":"2022-09-27","p":4,"s":"Fritz","k":"Rakdos Midrange","w":2,"l":1,"t":0,"g":3},{"d":"2022-09-27","p":5,"s":"Michael A.","k":"Boros Heroic","w":1,"l":2,"t":0,"g":3},{"d":"2022-09-27","p":6,"s":"Miau","k":"Orzhov Pact","w":1,"l":2,"t":0,"g":3},{"d":"2022-09-27","p":7,"s":"Philipp","k":"4/5c Incarnation","w":0,"l":2,"t":1,"g":3},{"d":"2022-09-27","p":8,"s":"Lukas K.","k":"Izzet Phoenix","w":0,"l":2,"t":1,"g":3},{"d":"2022-10-04","p":1,"s":"Philipp","k":"4c Ascendancy","w":3,"l":0,"t":0,"g":3},{"d":"2022-10-04","p":2,"s":"Fritz","k":"Lotus Field","w":2,"l":1,"t":0,"g":3},{"d":"2022-10-04","p":3,"s":"Miau","k":"Orzhov Pact","w":1,"l":2,"t":0,"g":3},{"d":"2022-10-04","p":4,"s":"Martin","k":"Mono G Stompy","w":0,"l":3,"t":0,"g":3},{"d":"2022-10-11","p":1,"s":"Michael A.","k":"Boros Heroic","w":4,"l":0,"t":0,"g":4},{"d":"2022-10-11","p":2,"s":"Steven","k":"Azorius Spirits","w":3,"l":1,"t":0,"g":4},{"d":"2022-10-11","p":3,"s":"Philipp","k":"4/5c Incarnation","w":3,"l":1,"t":0,"g":4},{"d":"2022-10-11","p":4,"s":"Jonas G.","k":"Green Devotion","w":3,"l":1,"t":0,"g":4},{"d":"2022-10-11","p":5,"s":"Fritz","k":"Rakdos Midrange","w":2,"l":1,"t":1,"g":4},{"d":"2022-10-11","p":6,"s":"Frank","k":"Izzet Prowess","w":2,"l":1,"t":1,"g":4},{"d":"2022-10-11","p":7,"s":"Marc U.","k":"Azorius Control","w":2,"l":1,"t":1,"g":4},{"d":"2022-10-11","p":8,"s":"Martin","k":"Mono W Humans","w":2,"l":2,"t":0,"g":4},{"d":"2022-10-11","p":9,"s":"Marc G.","k":"Rakdos Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2022-10-11","p":10,"s":"Miau","k":"Lotus Field","w":2,"l":2,"t":0,"g":4},{"d":"2022-10-11","p":11,"s":"Ines","k":"Mono W Humans","w":1,"l":2,"t":1,"g":4},{"d":"2022-10-11","p":12,"s":"Stephan","k":"Rakdos Sacrifice","w":1,"l":3,"t":0,"g":4},{"d":"2022-10-11","p":13,"s":"Fynn","k":"Izzet Prowess","w":0,"l":3,"t":0,"g":3},{"d":"2022-10-11","p":14,"s":"Basti","k":"Abzan Greasefang","w":0,"l":3,"t":0,"g":3},{"d":"2022-10-11","p":15,"s":"Moritz","k":"Golgari Elves","w":0,"l":3,"t":0,"g":3},{"d":"2022-10-18","p":1,"s":"Stephan","k":"Mono U Spirits","w":3,"l":0,"t":0,"g":3},{"d":"2022-10-18","p":2,"s":"Philipp","k":"Orzhov Blink","w":2,"l":1,"t":0,"g":3},{"d":"2022-10-18","p":3,"s":"Joshi","k":"Gruul Stompy","w":2,"l":1,"t":0,"g":3},{"d":"2022-10-18","p":4,"s":"Marc G.","k":"Rakdos Midrange","w":2,"l":1,"t":0,"g":3},{"d":"2022-10-18","p":5,"s":"Martin","k":"Mono W Humans","w":1,"l":2,"t":0,"g":3},{"d":"2022-10-18","p":6,"s":"Steven","k":"Azorius Spirits","w":1,"l":2,"t":0,"g":3},{"d":"2022-10-18","p":7,"s":"Frank","k":"Izzet Prowess","w":1,"l":2,"t":0,"g":3},{"d":"2022-10-18","p":8,"s":"Miau","k":"Gruul Stompy","w":0,"l":3,"t":0,"g":3},{"d":"2022-11-01","p":1,"s":"Fritz","k":"5c Fires","w":3,"l":0,"t":0,"g":3},{"d":"2022-11-01","p":2,"s":"Max","k":"Bant Spirits","w":2,"l":1,"t":0,"g":3},{"d":"2022-11-01","p":3,"s":"Philipp","k":"Mono W Humans","w":2,"l":1,"t":0,"g":3},{"d":"2022-11-01","p":4,"s":"Stephan","k":"Mono W Humans","w":1,"l":2,"t":0,"g":3},{"d":"2022-11-01","p":5,"s":"Jonas G.","k":"Hardened Scales","w":1,"l":2,"t":0,"g":3},{"d":"2022-11-01","p":6,"s":"Moritz","k":"Gruul Stompy","w":0,"l":3,"t":0,"g":3},{"d":"2022-11-08","p":1,"s":"Jonas G.","k":"Green Devotion","w":3,"l":0,"t":0,"g":3},{"d":"2022-11-08","p":2,"s":"Miau","k":"Simic Merfolk","w":2,"l":1,"t":0,"g":3},{"d":"2022-11-08","p":3,"s":"Stephan","k":"Mono W Humans","w":2,"l":1,"t":0,"g":3},{"d":"2022-11-08","p":4,"s":"Lukas K.","k":"Esper Control","w":1,"l":1,"t":0,"g":2},{"d":"2022-11-08","p":5,"s":"Philipp","k":"4/5c Incarnation","w":1,"l":1,"t":0,"g":2},{"d":"2022-11-08","p":6,"s":"Alex","k":"Boros Heroic","w":1,"l":2,"t":0,"g":3},{"d":"2022-11-08","p":7,"s":"Michael A.","k":"Boros Heroic","w":1,"l":2,"t":0,"g":3},{"d":"2022-11-08","p":8,"s":"Fritz","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2022-11-08","p":9,"s":"Martin","k":"Orzhov Humans","w":0,"l":2,"t":0,"g":2},{"d":"2022-11-22","p":1,"s":"Jaron","k":"Azorius Control","w":2,"l":1,"t":0,"g":3},{"d":"2022-11-22","p":2,"s":"Stephan","k":"Mono W Humans","w":2,"l":1,"t":0,"g":3},{"d":"2022-11-22","p":3,"s":"Jonas G.","k":"Green Devotion","w":2,"l":1,"t":0,"g":3},{"d":"2022-11-22","p":4,"s":"Moritz","k":"Gruul Stompy","w":0,"l":3,"t":0,"g":3},{"d":"2022-11-29","p":1,"s":"Philipp","k":"Bant Spirits","w":3,"l":1,"t":0,"g":4},{"d":"2022-11-29","p":2,"s":"Miau","k":"Selesnya Angels","w":3,"l":1,"t":0,"g":4},{"d":"2022-11-29","p":3,"s":"Michael A.","k":"Boros Heroic","w":2,"l":2,"t":0,"g":4},{"d":"2022-11-29","p":4,"s":"Stephan","k":"Azorius Soldiers","w":2,"l":2,"t":0,"g":4},{"d":"2022-11-29","p":5,"s":"Martin","k":"Azorius Soldiers","w":0,"l":4,"t":0,"g":4},{"d":"2022-12-06","p":1,"s":"Marc U.","k":"Azorius Control","w":3,"l":0,"t":0,"g":3},{"d":"2022-12-06","p":2,"s":"Fritz","k":"GW Toolbox","w":2,"l":1,"t":0,"g":3},{"d":"2022-12-06","p":3,"s":"Marc H.","k":"Abzan Greasefang","w":2,"l":1,"t":0,"g":3},{"d":"2022-12-06","p":4,"s":"Lukas K.","k":"Green Devotion","w":1,"l":1,"t":1,"g":3},{"d":"2022-12-06","p":5,"s":"Moritz","k":"Gruul Stompy","w":1,"l":1,"t":1,"g":3},{"d":"2022-12-06","p":6,"s":"Miau","k":"Simic Merfolk","w":1,"l":2,"t":0,"g":3},{"d":"2022-12-06","p":7,"s":"Philipp","k":"4c Ascendancy","w":1,"l":2,"t":0,"g":3},{"d":"2022-12-06","p":8,"s":"Stephan","k":"Hardened Scales","w":0,"l":3,"t":0,"g":3},{"d":"2022-12-20","p":1,"s":"Philipp","k":"Bant Spirits","w":3,"l":0,"t":0,"g":3},{"d":"2022-12-20","p":2,"s":"Miau","k":"Selesnya Angels","w":2,"l":1,"t":0,"g":3},{"d":"2022-12-20","p":3,"s":"Max","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2022-12-20","p":4,"s":"Joshi","k":"Gruul Stompy","w":1,"l":2,"t":0,"g":3},{"d":"2022-12-20","p":5,"s":"Lukas K.","k":"Jeskai Ascendancy","w":1,"l":2,"t":0,"g":3},{"d":"2022-12-20","p":6,"s":"Moritz","k":"Gruul Stompy","w":0,"l":3,"t":0,"g":3},{"d":"2022-12-27","p":1,"s":"Stefan","k":"Rakdos Midrange","w":3,"l":0,"t":0,"g":3},{"d":"2022-12-27","p":2,"s":"Miau","k":"Selesnya Angels","w":2,"l":1,"t":0,"g":3},{"d":"2022-12-27","p":3,"s":"Moritz","k":"Gruul Stompy","w":2,"l":1,"t":0,"g":3},{"d":"2022-12-27","p":4,"s":"Fritz","k":"Storm Herald","w":2,"l":1,"t":0,"g":3},{"d":"2022-12-27","p":5,"s":"Jonathan","k":"Dimir Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2022-12-27","p":6,"s":"Philipp","k":"4/5c Incarnation","w":1,"l":2,"t":0,"g":3},{"d":"2022-12-27","p":7,"s":"Fynn","k":"Mono R Aggro","w":1,"l":2,"t":0,"g":3},{"d":"2022-12-27","p":8,"s":"Markus","k":"Mono W Humans","w":0,"l":3,"t":0,"g":3},{"d":"2023-01-03","p":1,"s":"Stefan","k":"Rakdos Midrange","w":3,"l":0,"t":0,"g":3},{"d":"2023-01-03","p":2,"s":"Jaron","k":"Azorius Control","w":2,"l":1,"t":0,"g":3},{"d":"2023-01-03","p":3,"s":"Marc U.","k":"Azorius Control","w":2,"l":1,"t":0,"g":3},{"d":"2023-01-03","p":4,"s":"Jonas G.","k":"Green Devotion","w":1,"l":1,"t":1,"g":3},{"d":"2023-01-03","p":5,"s":"Ines","k":"Mono W Humans","w":1,"l":2,"t":0,"g":3},{"d":"2023-01-03","p":6,"s":"Fritz","k":"Lotus Field","w":1,"l":2,"t":0,"g":3},{"d":"2023-01-03","p":7,"s":"Stephan","k":"Mono B Aggro","w":1,"l":2,"t":0,"g":3},{"d":"2023-01-03","p":8,"s":"Chris","k":"Mono U Spirits","w":0,"l":3,"t":0,"g":3},{"d":"2023-01-31","p":1,"s":"Marc H.","k":"Jund Sacrifice","w":3,"l":0,"t":0,"g":3},{"d":"2023-01-31","p":2,"s":"Max","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2023-01-31","p":3,"s":"Michael A.","k":"Ignus Combo","w":2,"l":1,"t":0,"g":3},{"d":"2023-01-31","p":4,"s":"Miau","k":"Dimir Control","w":1,"l":0,"t":2,"g":3},{"d":"2023-01-31","p":5,"s":"Philipp","k":"UR+ Creativity","w":1,"l":1,"t":1,"g":3},{"d":"2023-01-31","p":6,"s":"Moritz","k":"Gruul Stompy","w":1,"l":2,"t":0,"g":3},{"d":"2023-01-31","p":7,"s":"Stephan","k":"Azorius Spirits","w":0,"l":2,"t":1,"g":3},{"d":"2023-01-31","p":8,"s":"Lukas K.","k":"Jeskai Ascendancy","w":0,"l":3,"t":0,"g":3},{"d":"2023-02-21","p":1,"s":"Fritz","k":"Dimir Control","w":3,"l":0,"t":0,"g":3},{"d":"2023-02-21","p":2,"s":"Marc H.","k":"Abzan Greasefang","w":2,"l":1,"t":0,"g":3},{"d":"2023-02-21","p":3,"s":"Miau","k":"Azorius Control","w":2,"l":1,"t":0,"g":3},{"d":"2023-02-21","p":4,"s":"Philipp","k":"UR+ Creativity","w":1,"l":2,"t":0,"g":3},{"d":"2023-02-21","p":5,"s":"Stephan","k":"Hammertime","w":1,"l":2,"t":0,"g":3},{"d":"2023-02-21","p":6,"s":"Michael A.","k":"Ignus Combo","w":0,"l":3,"t":0,"g":3},{"d":"2023-02-28","p":1,"s":"Philipp","k":"Bant Spirits","w":4,"l":0,"t":0,"g":4},{"d":"2023-02-28","p":2,"s":"Fritz","k":"UR+ Creativity","w":3,"l":0,"t":1,"g":4},{"d":"2023-02-28","p":3,"s":"Jonas F.","k":"Mono R Aggro","w":3,"l":1,"t":0,"g":4},{"d":"2023-02-28","p":4,"s":"Marc U.","k":"Azorius Control","w":2,"l":1,"t":1,"g":4},{"d":"2023-02-28","p":5,"s":"Jonas G.","k":"5c Bring to Light","w":2,"l":2,"t":0,"g":4},{"d":"2023-02-28","p":6,"s":"Marc H.","k":"Jund Sacrifice","w":2,"l":2,"t":0,"g":4},{"d":"2023-02-28","p":7,"s":"Stefan","k":"Rakdos Midrange","w":2,"l":2,"t":0,"g":4},{"d":"2023-02-28","p":8,"s":"Joshua J.","k":"Orzhov Humans","w":2,"l":2,"t":0,"g":4},{"d":"2023-02-28","p":9,"s":"Max","k":"Izzet Phoenix","w":1,"l":3,"t":0,"g":4},{"d":"2023-02-28","p":10,"s":"Leo L.","k":"Izzet Drakes","w":1,"l":3,"t":0,"g":4},{"d":"2023-02-28","p":11,"s":"Michael A.","k":"Izzet Phoenix","w":1,"l":3,"t":0,"g":4},{"d":"2023-02-28","p":12,"s":"Philipp H.","k":"Izzet Phoenix","w":0,"l":4,"t":0,"g":4},{"d":"2023-03-14","p":1,"s":"Joshua J.","k":"Mono W Humans","w":2,"l":0,"t":0,"g":2},{"d":"2023-03-14","p":2,"s":"Stephan","k":"Mono W Humans","w":2,"l":1,"t":0,"g":3},{"d":"2023-03-14","p":3,"s":"Leo L.","k":"Izzet Drakes","w":0,"l":1,"t":0,"g":1},{"d":"2023-03-14","p":4,"s":"Philipp","k":"Bant Spirits","w":2,"l":1,"t":0,"g":3},{"d":"2023-03-14","p":5,"s":"Andreas W.","k":"Mono W Humans","w":1,"l":2,"t":0,"g":3},{"d":"2023-03-14","p":6,"s":"Moritz","k":"Golgari Elves","w":0,"l":2,"t":0,"g":2},{"d":"2023-03-21","p":1,"s":"Jonas G.","k":"Green Devotion","w":3,"l":0,"t":0,"g":3},{"d":"2023-03-21","p":2,"s":"Max","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2023-03-21","p":3,"s":"Frank","k":"Izzet Phoenix","w":1,"l":1,"t":0,"g":2},{"d":"2023-03-21","p":4,"s":"Joshua J.","k":"Mono W Humans","w":2,"l":1,"t":0,"g":3},{"d":"2023-03-21","p":5,"s":"Philipp H.","k":"Izzet Prowess","w":0,"l":2,"t":0,"g":2},{"d":"2023-03-21","p":6,"s":"Leo L.","k":"Izzet Drakes","w":1,"l":2,"t":0,"g":3},{"d":"2023-03-21","p":7,"s":"Lukas K.","k":"Dimir Mill","w":0,"l":2,"t":0,"g":2},{"d":"2023-03-28","p":1,"s":"Philipp","k":"Azorius Spirits","w":4,"l":0,"t":0,"g":4},{"d":"2023-03-28","p":2,"s":"Fritz","k":"Neoform Atraxa","w":3,"l":1,"t":0,"g":4},{"d":"2023-03-28","p":3,"s":"Stephan","k":"Jund Midrange","w":2,"l":1,"t":1,"g":4},{"d":"2023-03-28","p":4,"s":"Marc H.","k":"Abzan Greasefang","w":2,"l":2,"t":0,"g":4},{"d":"2023-03-28","p":5,"s":"Lukas K.","k":"Dimir Mill","w":2,"l":2,"t":0,"g":4},{"d":"2023-03-28","p":6,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2023-03-28","p":7,"s":"Jonas G.","k":"Mono G Stompy","w":1,"l":2,"t":0,"g":3},{"d":"2023-03-28","p":8,"s":"Leo L.","k":"Izzet Drakes","w":0,"l":2,"t":1,"g":3},{"d":"2023-03-28","p":9,"s":"Andreas W.","k":"Mono W Humans","w":0,"l":3,"t":0,"g":3},{"d":"2023-04-04","p":1,"s":"Jonas G.","k":"Green Devotion","w":3,"l":1,"t":0,"g":4},{"d":"2023-04-04","p":2,"s":"Philipp","k":"4/5c Incarnation","w":3,"l":1,"t":0,"g":4},{"d":"2023-04-04","p":3,"s":"Philipp H.","k":"Izzet Phoenix","w":2,"l":1,"t":1,"g":4},{"d":"2023-04-04","p":4,"s":"Marc H.","k":"Jund Sacrifice","w":2,"l":2,"t":0,"g":4},{"d":"2023-04-04","p":5,"s":"Stephan","k":"Jund Midrange","w":2,"l":2,"t":0,"g":4},{"d":"2023-04-04","p":6,"s":"Jonas F.","k":"Mono R Aggro","w":2,"l":2,"t":0,"g":4},{"d":"2023-04-04","p":7,"s":"Marc U.","k":"Azorius Control","w":2,"l":2,"t":0,"g":4},{"d":"2023-04-04","p":8,"s":"Leo L.","k":"Izzet Drakes","w":1,"l":2,"t":1,"g":4},{"d":"2023-04-04","p":9,"s":"Moritz","k":"Gruul Stompy","w":1,"l":3,"t":0,"g":4},{"d":"2023-04-04","p":10,"s":"Lukas K.","k":"Dimir Mill","w":1,"l":3,"t":0,"g":4},{"d":"2023-04-10","p":1,"s":"Marc H.","k":"Abzan Greasefang","w":3,"l":0,"t":0,"g":3},{"d":"2023-04-10","p":2,"s":"Stephan","k":"Jund Midrange","w":1,"l":0,"t":2,"g":3},{"d":"2023-04-10","p":3,"s":"Philipp","k":"4/5c Incarnation","w":1,"l":1,"t":1,"g":3},{"d":"2023-04-10","p":4,"s":"Michael A.","k":"Izzet Phoenix","w":1,"l":1,"t":1,"g":3},{"d":"2023-04-10","p":5,"s":"Jonas G.","k":"Green Devotion","w":1,"l":2,"t":0,"g":3},{"d":"2023-04-10","p":6,"s":"Basti","k":"Neoform Atraxa","w":0,"l":3,"t":0,"g":3},{"d":"2023-04-25","p":1,"s":"Philipp H.","k":"Izzet Phoenix","w":3,"l":0,"t":0,"g":3},{"d":"2023-04-25","p":2,"s":"Jonas G.","k":"Green Devotion","w":2,"l":1,"t":0,"g":3},{"d":"2023-04-25","p":3,"s":"Andreas W.","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2023-04-25","p":4,"s":"Marc H.","k":"Abzan Greasefang","w":1,"l":1,"t":1,"g":3},{"d":"2023-04-25","p":5,"s":"Lukas K.","k":"GW Toolbox","w":1,"l":2,"t":0,"g":3},{"d":"2023-04-25","p":6,"s":"Leo L.","k":"Izzet Drakes","w":0,"l":1,"t":2,"g":3},{"d":"2023-04-25","p":7,"s":"Stephan","k":"Jund Midrange","w":0,"l":1,"t":2,"g":3},{"d":"2023-04-25","p":8,"s":"Michael A.","k":"Azorius Control","w":0,"l":2,"t":1,"g":3},{"d":"2023-05-02","p":1,"s":"Stephan","k":"Jund Midrange","w":3,"l":0,"t":0,"g":3},{"d":"2023-05-02","p":2,"s":"Jonas G.","k":"Green Devotion","w":3,"l":1,"t":0,"g":4},{"d":"2023-05-02","p":3,"s":"Andreas W.","k":"Izzet Phoenix","w":3,"l":1,"t":0,"g":4},{"d":"2023-05-02","p":4,"s":"Fritz","k":"Rakdos Midrange","w":3,"l":1,"t":0,"g":4},{"d":"2023-05-02","p":5,"s":"Philipp","k":"Azorius Spirits","w":2,"l":2,"t":0,"g":4},{"d":"2023-05-02","p":6,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2023-05-02","p":7,"s":"Marc U.","k":"Azorius Control","w":2,"l":2,"t":0,"g":4},{"d":"2023-05-02","p":8,"s":"Moritz","k":"Golgari Elves","w":1,"l":2,"t":1,"g":4},{"d":"2023-05-02","p":9,"s":"Michael A.","k":"Azorius Control","w":1,"l":2,"t":1,"g":4},{"d":"2023-05-02","p":10,"s":"Marc H.","k":"Lutri Pile","w":0,"l":3,"t":0,"g":3},{"d":"2023-05-02","p":11,"s":"Lukas K.","k":"GW Toolbox","w":0,"l":3,"t":0,"g":3},{"d":"2023-05-09","p":1,"s":"Fritz","k":"Rakdos Midrange","w":2,"l":0,"t":1,"g":3},{"d":"2023-05-09","p":2,"s":"Preslav","k":"UR+ Creativity","w":2,"l":0,"t":1,"g":3},{"d":"2023-05-09","p":3,"s":"Michael A.","k":"Azorius Control","w":1,"l":0,"t":2,"g":3},{"d":"2023-05-09","p":4,"s":"Manuel F.","k":"Green Devotion","w":1,"l":1,"t":1,"g":3},{"d":"2023-05-09","p":5,"s":"Andreas W.","k":"Izzet Phoenix","w":0,"l":1,"t":1,"g":2},{"d":"2023-05-09","p":6,"s":"Moritz","k":"Golgari Elves","w":0,"l":2,"t":0,"g":2},{"d":"2023-05-09","p":7,"s":"Philipp H.","k":"Izzet Phoenix","w":0,"l":2,"t":0,"g":2},{"d":"2023-05-24","p":1,"s":"Fabian","k":"Orzhov Humans","w":3,"l":0,"t":0,"g":3},{"d":"2023-05-24","p":2,"s":"Philipp H.","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2023-05-24","p":3,"s":"Andreas W.","k":"UR+ Creativity","w":2,"l":1,"t":0,"g":3},{"d":"2023-05-24","p":4,"s":"Jonas G.","k":"4/5c Incarnation","w":2,"l":1,"t":0,"g":3},{"d":"2023-05-24","p":5,"s":"Michael A.","k":"Azorius Control","w":1,"l":1,"t":1,"g":3},{"d":"2023-05-24","p":6,"s":"Leo L.","k":"Izzet Control","w":1,"l":2,"t":0,"g":3},{"d":"2023-05-24","p":7,"s":"Marc H.","k":"Rakdos Sacrifice","w":0,"l":2,"t":1,"g":3},{"d":"2023-05-24","p":8,"s":"Stephan","k":"Mono W Humans","w":0,"l":3,"t":0,"g":3},{"d":"2023-06-13","p":1,"s":"Fritz","k":"Green Devotion","w":3,"l":0,"t":0,"g":3},{"d":"2023-06-13","p":2,"s":"Andreas W.","k":"UR+ Creativity","w":2,"l":1,"t":0,"g":3},{"d":"2023-06-13","p":3,"s":"Jonas G.","k":"5c Bring to Light","w":2,"l":1,"t":0,"g":3},{"d":"2023-06-13","p":4,"s":"Marc U.","k":"Azorius Control","w":1,"l":2,"t":0,"g":3},{"d":"2023-06-13","p":5,"s":"Michael A.","k":"Boros Convoke","w":1,"l":2,"t":0,"g":3},{"d":"2023-06-13","p":6,"s":"Philipp H.","k":"Izzet Phoenix","w":0,"l":3,"t":0,"g":3},{"d":"2023-06-27","p":1,"s":"Manuel S.","k":"Mono W Humans","w":4,"l":0,"t":0,"g":4},{"d":"2023-06-27","p":2,"s":"Fritz","k":"Green Devotion","w":3,"l":1,"t":0,"g":4},{"d":"2023-06-27","p":3,"s":"Philipp","k":"Azorius Spirits","w":3,"l":1,"t":0,"g":4},{"d":"2023-06-27","p":4,"s":"Lukas G.","k":"Esper Flash","w":2,"l":1,"t":1,"g":4},{"d":"2023-06-27","p":5,"s":"Daniel B.","k":"Mono B Aggro","w":2,"l":1,"t":1,"g":4},{"d":"2023-06-27","p":6,"s":"Lukas K.","k":"Dimir Mill","w":2,"l":2,"t":0,"g":4},{"d":"2023-06-27","p":7,"s":"Jonas G.","k":"Green Devotion","w":1,"l":2,"t":1,"g":4},{"d":"2023-06-27","p":8,"s":"Marc U.","k":"Azorius Control","w":1,"l":2,"t":1,"g":4},{"d":"2023-06-27","p":9,"s":"Andreas W.","k":"Rakdos Creativity","w":1,"l":2,"t":1,"g":4},{"d":"2023-06-27","p":10,"s":"Fabian","k":"Mono B Control","w":1,"l":2,"t":1,"g":4},{"d":"2023-06-27","p":11,"s":"Michael A.","k":"Boros Convoke","w":1,"l":3,"t":0,"g":4},{"d":"2023-06-27","p":12,"s":"Philipp H.","k":"Izzet Phoenix","w":0,"l":4,"t":0,"g":4},{"d":"2023-07-04","p":1,"s":"Philipp","k":"Azorius Spirits","w":4,"l":0,"t":0,"g":4},{"d":"2023-07-04","p":2,"s":"Stephan","k":"Jund Midrange","w":3,"l":1,"t":0,"g":4},{"d":"2023-07-04","p":3,"s":"Fritz","k":"Green Devotion","w":3,"l":1,"t":0,"g":4},{"d":"2023-07-04","p":4,"s":"Michael A.","k":"Boros Convoke","w":2,"l":1,"t":1,"g":4},{"d":"2023-07-04","p":5,"s":"Marc H.","k":"Lutri Pile","w":2,"l":1,"t":1,"g":4},{"d":"2023-07-04","p":6,"s":"Lukas K.","k":"Jeskai Ascendancy","w":2,"l":2,"t":0,"g":4},{"d":"2023-07-04","p":7,"s":"Andreas W.","k":"Rakdos Creativity","w":2,"l":2,"t":0,"g":4},{"d":"2023-07-04","p":8,"s":"Manuel S.","k":"Mono W Humans","w":2,"l":2,"t":0,"g":4},{"d":"2023-07-04","p":9,"s":"Jonas G.","k":"4c Elementals","w":2,"l":2,"t":0,"g":4},{"d":"2023-07-04","p":10,"s":"Leo L.","k":"Izzet Control","w":1,"l":0,"t":3,"g":4},{"d":"2023-07-04","p":11,"s":"Fabian","k":"Mono B Control","w":1,"l":1,"t":2,"g":4},{"d":"2023-07-04","p":12,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":1,"t":2,"g":4},{"d":"2023-07-04","p":13,"s":"Juri","k":"Infect","w":1,"l":3,"t":0,"g":4},{"d":"2023-07-04","p":14,"s":"Andreas H.","k":"Izzet Phoenix","w":0,"l":2,"t":2,"g":4},{"d":"2023-07-04","p":15,"s":"Marc G.","k":"Storm Herald","w":0,"l":3,"t":1,"g":4},{"d":"2023-07-04","p":16,"s":"Daniel B.","k":"Mono B Midrange","w":0,"l":4,"t":0,"g":4},{"d":"2023-07-18","p":1,"s":"Andreas W.","k":"Mono W Humans","w":3,"l":0,"t":0,"g":3},{"d":"2023-07-18","p":2,"s":"Philipp H.","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2023-07-18","p":3,"s":"Philipp","k":"Azorius Spirits","w":2,"l":1,"t":0,"g":3},{"d":"2023-07-18","p":4,"s":"Leo L.","k":"Izzet Control","w":2,"l":1,"t":0,"g":3},{"d":"2023-07-18","p":5,"s":"Marc H.","k":"Lutri Pile","w":1,"l":2,"t":0,"g":3},{"d":"2023-07-18","p":6,"s":"Jonas G.","k":"Hardened Scales","w":1,"l":2,"t":0,"g":3},{"d":"2023-07-18","p":7,"s":"Andreas H.","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2023-07-18","p":8,"s":"Michael A.","k":"Azorius Control","w":0,"l":3,"t":0,"g":3},{"d":"2023-07-25","p":1,"s":"Marc U.","k":"Izzet Drakes","w":3,"l":0,"t":1,"g":4},{"d":"2023-07-25","p":2,"s":"Fritz","k":"Grixis Archfiend","w":3,"l":0,"t":1,"g":4},{"d":"2023-07-25","p":3,"s":"Roman","k":"Mono W Humans","w":3,"l":1,"t":0,"g":4},{"d":"2023-07-25","p":4,"s":"Fabian","k":"Mono B Control","w":2,"l":1,"t":1,"g":4},{"d":"2023-07-25","p":5,"s":"Michael A.","k":"Boros Pia","w":2,"l":1,"t":1,"g":4},{"d":"2023-07-25","p":6,"s":"Philipp H.","k":"Izzet Phoenix","w":2,"l":1,"t":1,"g":4},{"d":"2023-07-25","p":7,"s":"Andreas H.","k":"Gruul Stompy","w":2,"l":1,"t":1,"g":4},{"d":"2023-07-25","p":8,"s":"Marc H.","k":"Abzan Greasefang","w":2,"l":2,"t":0,"g":4},{"d":"2023-07-25","p":9,"s":"Andreas W.","k":"UR+ Creativity","w":2,"l":2,"t":0,"g":4},{"d":"2023-07-25","p":10,"s":"Leo L.","k":"UR+ Creativity","w":1,"l":2,"t":1,"g":4},{"d":"2023-07-25","p":11,"s":"Manuel S.","k":"Mono W Humans","w":1,"l":2,"t":1,"g":4},{"d":"2023-07-25","p":12,"s":"Lukas G.","k":"Esper Flash","w":1,"l":2,"t":1,"g":4},{"d":"2023-07-25","p":13,"s":"Daniel L.","k":"Izzet Phoenix","w":1,"l":3,"t":0,"g":4},{"d":"2023-07-25","p":14,"s":"Stephan","k":"Jund Midrange","w":1,"l":3,"t":0,"g":4},{"d":"2023-07-25","p":15,"s":"Michael B.","k":"Jund Midrange","w":1,"l":3,"t":0,"g":4},{"d":"2023-07-25","p":16,"s":"Lukas K.","k":"Esper Control","w":0,"l":4,"t":0,"g":4},{"d":"2023-08-01","p":1,"s":"Andreas H.","k":"Gruul Stompy","w":3,"l":0,"t":0,"g":3},{"d":"2023-08-01","p":2,"s":"Michael A.","k":"Boros Pia","w":2,"l":1,"t":0,"g":3},{"d":"2023-08-01","p":3,"s":"Jonas G.","k":"Green Devotion","w":2,"l":1,"t":0,"g":3},{"d":"2023-08-01","p":4,"s":"Marc U.","k":"Azorius Control","w":2,"l":1,"t":0,"g":3},{"d":"2023-08-01","p":5,"s":"Daniel L.","k":"Rakdos Sacrifice","w":1,"l":2,"t":0,"g":3},{"d":"2023-08-01","p":6,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2023-08-01","p":7,"s":"Fabian","k":"Mono B Control","w":1,"l":2,"t":0,"g":3},{"d":"2023-08-01","p":8,"s":"Lukas G.","k":"Azorius Control","w":0,"l":3,"t":0,"g":3},{"d":"2023-08-08","p":1,"s":"Marc H.","k":"Rakdos Sacrifice","w":3,"l":0,"t":0,"g":3},{"d":"2023-08-08","p":2,"s":"Lukas G.","k":"Golgari Elves","w":2,"l":1,"t":0,"g":3},{"d":"2023-08-08","p":3,"s":"Andreas W.","k":"UR+ Creativity","w":2,"l":1,"t":0,"g":3},{"d":"2023-08-08","p":4,"s":"Roman","k":"Azorius Spirits","w":1,"l":2,"t":0,"g":3},{"d":"2023-08-08","p":5,"s":"Fabian","k":"Mono B Control","w":1,"l":2,"t":0,"g":3},{"d":"2023-08-08","p":6,"s":"Andreas H.","k":"Gruul Stompy","w":0,"l":3,"t":0,"g":3},{"d":"2023-08-15","p":1,"s":"Lukas K.","k":"Jeskai Ascendancy","w":4,"l":0,"t":0,"g":4},{"d":"2023-08-15","p":2,"s":"Stephan","k":"Jund Midrange","w":3,"l":1,"t":0,"g":4},{"d":"2023-08-15","p":3,"s":"Jonas F.","k":"Boros Pia","w":3,"l":1,"t":0,"g":4},{"d":"2023-08-15","p":4,"s":"Lukas G.","k":"Golgari Elves","w":2,"l":2,"t":0,"g":4},{"d":"2023-08-15","p":5,"s":"Daniel B.","k":"Rakdos Midrange","w":2,"l":2,"t":0,"g":4},{"d":"2023-08-15","p":6,"s":"Manuel S.","k":"Mono W Humans","w":2,"l":2,"t":0,"g":4},{"d":"2023-08-15","p":7,"s":"Michael A.","k":"Boros Pia","w":2,"l":2,"t":0,"g":4},{"d":"2023-08-15","p":8,"s":"Jonas G.","k":"Green Devotion","w":2,"l":2,"t":0,"g":4},{"d":"2023-08-15","p":9,"s":"Daniel Br.","k":"Rakdos Midrange","w":1,"l":2,"t":1,"g":4},{"d":"2023-08-15","p":10,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":2,"t":1,"g":4},{"d":"2023-08-15","p":11,"s":"Leo L.","k":"Izzet Drakes","w":1,"l":3,"t":0,"g":4},{"d":"2023-08-15","p":12,"s":"Kevin","k":"Gruul Stompy","w":0,"l":4,"t":0,"g":4},{"d":"2023-08-22","p":1,"s":"Jonas G.","k":"Mono W Humans","w":3,"l":0,"t":0,"g":3},{"d":"2023-08-22","p":2,"s":"Fabian","k":"Boros Pia","w":2,"l":0,"t":1,"g":3},{"d":"2023-08-22","p":3,"s":"Lukas G.","k":"Golgari Elves","w":2,"l":1,"t":0,"g":3},{"d":"2023-08-22","p":4,"s":"Leo L.","k":"Izzet Control","w":1,"l":1,"t":1,"g":3},{"d":"2023-08-22","p":5,"s":"Andreas W.","k":"Green Devotion","w":1,"l":2,"t":0,"g":3},{"d":"2023-08-22","p":6,"s":"Stephan","k":"Jund Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2023-08-22","p":7,"s":"Manuel S.","k":"Hammertime","w":0,"l":2,"t":1,"g":3},{"d":"2023-08-22","p":8,"s":"Philipp H.","k":"Izzet Drakes","w":0,"l":2,"t":1,"g":3},{"d":"2023-09-12","p":1,"s":"Fabian","k":"Boros Pia","w":3,"l":0,"t":0,"g":3},{"d":"2023-09-12","p":2,"s":"Stephan","k":"Jund Midrange","w":1,"l":1,"t":0,"g":2},{"d":"2023-09-12","p":3,"s":"Leo L.","k":"Azorius Spirits","w":1,"l":1,"t":0,"g":2},{"d":"2023-09-12","p":4,"s":"Frank","k":"Izzet Phoenix","w":0,"l":2,"t":0,"g":2},{"d":"2023-09-12","p":5,"s":"Daniel B.","k":"Rakdos Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2023-09-19","p":1,"s":"Roman","k":"Azorius Spirits","w":3,"l":0,"t":0,"g":3},{"d":"2023-09-19","p":2,"s":"Philipp H.","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2023-09-19","p":3,"s":"Daniel B.","k":"Rakdos Midrange","w":1,"l":0,"t":1,"g":2},{"d":"2023-09-19","p":4,"s":"Manuel S.","k":"Mono W Humans","w":1,"l":2,"t":0,"g":3},{"d":"2023-09-19","p":5,"s":"Stephan","k":"Jund Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2023-09-19","p":6,"s":"Leo L.","k":"Azorius Spirits","w":0,"l":2,"t":1,"g":3},{"d":"2023-09-26","p":1,"s":"Marc U.","k":"Azorius Control","w":3,"l":1,"t":0,"g":4},{"d":"2023-09-26","p":2,"s":"Philipp","k":"Hardened Scales","w":3,"l":1,"t":0,"g":4},{"d":"2023-09-26","p":3,"s":"Jonas G.","k":"Gruul Stompy","w":3,"l":1,"t":0,"g":4},{"d":"2023-09-26","p":4,"s":"David D.","k":"Rakdos Midrange","w":2,"l":1,"t":1,"g":4},{"d":"2023-09-26","p":5,"s":"Manuel S.","k":"Bant Beanstalk","w":2,"l":1,"t":1,"g":4},{"d":"2023-09-26","p":6,"s":"Marc H.","k":"Rakdos Sacrifice","w":1,"l":2,"t":0,"g":3},{"d":"2023-09-26","p":7,"s":"Stephan","k":"Jund Midrange","w":0,"l":2,"t":1,"g":3},{"d":"2023-09-26","p":8,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":3,"t":0,"g":4},{"d":"2023-09-26","p":9,"s":"Daniel B.","k":"Rakdos Midrange","w":0,"l":3,"t":0,"g":3},{"d":"2023-09-26","p":10,"s":"Leo L.","k":"Azorius Spirits","w":0,"l":0,"t":1,"g":1},{"d":"2023-10-10","p":1,"s":"Leo L.","k":"Azorius Control","w":3,"l":0,"t":1,"g":4},{"d":"2023-10-10","p":2,"s":"Philipp","k":"Azorius Spirits","w":3,"l":1,"t":0,"g":4},{"d":"2023-10-10","p":3,"s":"Fabian","k":"Mono B Control","w":3,"l":1,"t":0,"g":4},{"d":"2023-10-10","p":4,"s":"Stephan","k":"Boros Pia","w":2,"l":1,"t":1,"g":4},{"d":"2023-10-10","p":5,"s":"Marc U.","k":"Azorius Control","w":2,"l":2,"t":0,"g":4},{"d":"2023-10-10","p":6,"s":"Jonas G.","k":"Green Devotion","w":1,"l":2,"t":1,"g":4},{"d":"2023-10-10","p":7,"s":"Miau","k":"Azorius Control","w":1,"l":2,"t":1,"g":4},{"d":"2023-10-10","p":8,"s":"Dr. D.","k":"Neoform Atraxa","w":1,"l":2,"t":1,"g":4},{"d":"2023-10-10","p":9,"s":"Michael A.","k":"Boros Heroic","w":1,"l":3,"t":0,"g":4},{"d":"2023-10-10","p":10,"s":"Andreas H.","k":"Gruul Stompy","w":1,"l":3,"t":0,"g":4},{"d":"2023-10-24","p":1,"s":"Philipp","k":"4/5c Incarnation","w":2,"l":0,"t":1,"g":3},{"d":"2023-10-24","p":2,"s":"Leo L.","k":"Azorius Control","w":2,"l":0,"t":1,"g":3},{"d":"2023-10-24","p":3,"s":"Marc H.","k":"Rakdos Sacrifice","w":2,"l":1,"t":0,"g":3},{"d":"2023-10-24","p":4,"s":"Andreas W.","k":"Mono W Humans","w":2,"l":1,"t":0,"g":3},{"d":"2023-10-24","p":5,"s":"Philipp H.","k":"Izzet Phoenix","w":0,"l":2,"t":0,"g":2},{"d":"2023-10-24","p":6,"s":"Lukas K.","k":"Rona Combo","w":0,"l":2,"t":0,"g":2},{"d":"2023-10-24","p":7,"s":"Kevin","k":"Gruul Stompy","w":0,"l":2,"t":0,"g":2},{"d":"2023-11-07","p":1,"s":"Marc H.","k":"Rakdos Aggro","w":3,"l":0,"t":1,"g":4},{"d":"2023-11-07","p":2,"s":"Miau","k":"Selesnya Angels","w":3,"l":0,"t":1,"g":4},{"d":"2023-11-07","p":3,"s":"Andreas W.","k":"Izzet Phoenix","w":3,"l":1,"t":0,"g":4},{"d":"2023-11-07","p":4,"s":"Sebastian K.","k":"Rakdos Midrange","w":2,"l":1,"t":1,"g":4},{"d":"2023-11-07","p":5,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2023-11-07","p":6,"s":"Leo L.","k":"Azorius Spirits","w":2,"l":2,"t":0,"g":4},{"d":"2023-11-07","p":7,"s":"Michael A.","k":"Boros Pia","w":2,"l":2,"t":0,"g":4},{"d":"2023-11-07","p":8,"s":"Lukas K.","k":"Rona Combo","w":1,"l":2,"t":0,"g":3},{"d":"2023-11-07","p":9,"s":"Stephan","k":"Jund Midrange","w":1,"l":2,"t":1,"g":4},{"d":"2023-11-07","p":10,"s":"Dr. D.","k":"Neoform Atraxa","w":0,"l":3,"t":0,"g":3},{"d":"2023-11-07","p":11,"s":"Fabian","k":"Izzet Control","w":0,"l":3,"t":0,"g":3},{"d":"2023-11-21","p":1,"s":"Sebastian K.","k":"Rakdos Midrange","w":3,"l":1,"t":0,"g":4},{"d":"2023-11-21","p":2,"s":"Miau","k":"Selesnya Angels","w":3,"l":1,"t":0,"g":4},{"d":"2023-11-21","p":3,"s":"Marc H.","k":"Rakdos Midrange","w":3,"l":1,"t":0,"g":4},{"d":"2023-11-21","p":4,"s":"Michael A.","k":"Simic Merfolk","w":2,"l":1,"t":1,"g":4},{"d":"2023-11-21","p":5,"s":"Manuel S.","k":"Mono W Humans","w":2,"l":1,"t":1,"g":4},{"d":"2023-11-21","p":6,"s":"Jonas G.","k":"5c Humans","w":2,"l":2,"t":0,"g":4},{"d":"2023-11-21","p":7,"s":"Andreas H.","k":"Gruul Stompy","w":1,"l":1,"t":2,"g":4},{"d":"2023-11-21","p":8,"s":"Daniel B.","k":"Rakdos Midrange","w":1,"l":1,"t":2,"g":4},{"d":"2023-11-21","p":9,"s":"Philipp H.","k":"Dimir Phoenix","w":1,"l":2,"t":1,"g":4},{"d":"2023-11-21","p":10,"s":"Marc B.","k":"Azorius Spirits","w":1,"l":2,"t":1,"g":4},{"d":"2023-11-21","p":11,"s":"Lukas K.","k":"Rona Combo","w":1,"l":2,"t":1,"g":4},{"d":"2023-11-21","p":12,"s":"Stephan","k":"Jund Midrange","w":1,"l":2,"t":1,"g":4},{"d":"2023-11-21","p":13,"s":"Andreas W.","k":"Izzet Phoenix","w":1,"l":3,"t":0,"g":4},{"d":"2023-11-21","p":14,"s":"Leo L.","k":"Azorius Control","w":0,"l":2,"t":2,"g":4},{"d":"2023-12-05","p":1,"s":"Leo L.","k":"Azorius Control","w":3,"l":1,"t":0,"g":4},{"d":"2023-12-05","p":2,"s":"Stephan","k":"Boros Convoke","w":3,"l":1,"t":0,"g":4},{"d":"2023-12-05","p":3,"s":"Daniel B.","k":"Rakdos Midrange","w":3,"l":1,"t":0,"g":4},{"d":"2023-12-05","p":4,"s":"Miau","k":"Azorius Spirits","w":2,"l":1,"t":1,"g":4},{"d":"2023-12-05","p":5,"s":"Jacques","k":"Mono W Artifacts","w":2,"l":1,"t":1,"g":4},{"d":"2023-12-05","p":6,"s":"Michael A.","k":"Simic Merfolk","w":2,"l":2,"t":0,"g":4},{"d":"2023-12-05","p":7,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":1,"t":2,"g":4},{"d":"2023-12-05","p":8,"s":"Manuel S.","k":"Mono W Humans","w":1,"l":1,"t":2,"g":4},{"d":"2023-12-05","p":9,"s":"Dr. D.","k":"Green Devotion","w":1,"l":2,"t":1,"g":4},{"d":"2023-12-05","p":10,"s":"Lukas K.","k":"Rona Combo","w":1,"l":3,"t":0,"g":4},{"d":"2023-12-05","p":11,"s":"Andreas W.","k":"Dimir Phoenix","w":1,"l":2,"t":1,"g":4},{"d":"2023-12-05","p":12,"s":"David S.","k":"Izzet Phoenix","w":0,"l":4,"t":0,"g":4},{"d":"2024-01-09","p":1,"s":"Andreas W.","k":"Rakdos Midrange","w":4,"l":0,"t":0,"g":4},{"d":"2024-01-09","p":2,"s":"Fabian","k":"Mono B Devotion","w":3,"l":0,"t":1,"g":4},{"d":"2024-01-09","p":3,"s":"Michael A.","k":"Simic Merfolk","w":3,"l":1,"t":0,"g":4},{"d":"2024-01-09","p":4,"s":"Lukas K.","k":"Soulflayer","w":2,"l":1,"t":1,"g":4},{"d":"2024-01-09","p":5,"s":"Jacques","k":"Mono W Artifacts","w":2,"l":1,"t":1,"g":4},{"d":"2024-01-09","p":6,"s":"Jonas G.","k":"Atarka Red","w":2,"l":1,"t":1,"g":4},{"d":"2024-01-09","p":7,"s":"Miau","k":"Amalia Combo","w":2,"l":1,"t":1,"g":4},{"d":"2024-01-09","p":8,"s":"Leo L.","k":"Azorius Control","w":2,"l":2,"t":0,"g":4},{"d":"2024-01-09","p":9,"s":"Manuel F.","k":"5c Humans","w":2,"l":2,"t":0,"g":4},{"d":"2024-01-09","p":10,"s":"Stephan","k":"Jund Midrange","w":1,"l":1,"t":2,"g":4},{"d":"2024-01-09","p":11,"s":"Stefan","k":"Izzet Phoenix","w":1,"l":3,"t":0,"g":4},{"d":"2024-01-09","p":12,"s":"David S.","k":"Izzet Phoenix","w":1,"l":3,"t":0,"g":4},{"d":"2024-01-09","p":13,"s":"Dr. D.","k":"Soulflayer","w":1,"l":3,"t":0,"g":4},{"d":"2024-01-09","p":14,"s":"Jonas F.","k":"Boros Pia","w":1,"l":3,"t":0,"g":4},{"d":"2024-01-09","p":15,"s":"Philipp","k":"Hammertime","w":0,"l":2,"t":2,"g":4},{"d":"2024-01-09","p":16,"s":"Philipp H.","k":"Izzet Phoenix","w":0,"l":3,"t":1,"g":4},{"d":"2024-01-23","p":1,"s":"Marc H.","k":"Rakdos Midrange","w":4,"l":0,"t":0,"g":4},{"d":"2024-01-23","p":2,"s":"Miau","k":"Amalia Combo","w":3,"l":1,"t":0,"g":4},{"d":"2024-01-23","p":3,"s":"Fabian","k":"Mono B Devotion","w":3,"l":1,"t":0,"g":4},{"d":"2024-01-23","p":4,"s":"Leo T.","k":"Mono W Humans","w":3,"l":1,"t":0,"g":4},{"d":"2024-01-23","p":5,"s":"Andreas W.","k":"Rakdos Midrange","w":2,"l":2,"t":0,"g":4},{"d":"2024-01-23","p":6,"s":"Jonas G.","k":"Gruul Stompy","w":2,"l":2,"t":0,"g":4},{"d":"2024-01-23","p":7,"s":"Lukas K.","k":"Soulflayer","w":2,"l":2,"t":0,"g":4},{"d":"2024-01-23","p":8,"s":"Ali","k":"Azorius Soldiers","w":2,"l":2,"t":0,"g":4},{"d":"2024-01-23","p":9,"s":"Daniel B.","k":"Rakdos Midrange","w":1,"l":1,"t":2,"g":4},{"d":"2024-01-23","p":10,"s":"Jonas F.","k":"Izzet Ensoul","w":1,"l":2,"t":1,"g":4},{"d":"2024-01-23","p":11,"s":"Osman","k":"Selesnya Bogles","w":1,"l":3,"t":0,"g":4},{"d":"2024-01-23","p":12,"s":"Manuel S.","k":"Mono W Humans","w":1,"l":3,"t":0,"g":4},{"d":"2024-01-23","p":13,"s":"Philipp H.","k":"Izzet Phoenix","w":0,"l":2,"t":2,"g":4},{"d":"2024-01-23","p":14,"s":"Leo L.","k":"Azorius Control","w":0,"l":3,"t":1,"g":4},{"d":"2024-02-06","p":1,"s":"Jonas F.","k":"Boros Pia","w":4,"l":0,"t":0,"g":4},{"d":"2024-02-06","p":2,"s":"Miau","k":"Amalia Combo","w":3,"l":1,"t":0,"g":4},{"d":"2024-02-06","p":3,"s":"Dr. D.","k":"Rakdos Midrange","w":2,"l":1,"t":1,"g":4},{"d":"2024-02-06","p":4,"s":"Daniel B.","k":"Rakdos Midrange","w":2,"l":1,"t":1,"g":4},{"d":"2024-02-06","p":5,"s":"Daniel Br.","k":"Rakdos Midrange","w":2,"l":2,"t":0,"g":4},{"d":"2024-02-06","p":6,"s":"Manuel S.","k":"Boros Convoke","w":2,"l":2,"t":0,"g":4},{"d":"2024-02-06","p":7,"s":"Stephan","k":"Rakdos Midrange","w":2,"l":2,"t":0,"g":4},{"d":"2024-02-06","p":8,"s":"Andreas H.","k":"Gruul Stompy","w":1,"l":1,"t":2,"g":4},{"d":"2024-02-06","p":9,"s":"Lukas K.","k":"Bant Beanstalk","w":1,"l":1,"t":2,"g":4},{"d":"2024-02-06","p":10,"s":"Leo T.","k":"Mono W Humans","w":1,"l":3,"t":0,"g":4},{"d":"2024-02-06","p":11,"s":"Michael B.","k":"Jund Midrange","w":1,"l":3,"t":0,"g":4},{"d":"2024-02-06","p":12,"s":"Michael A.","k":"Simic Merfolk","w":0,"l":4,"t":0,"g":4},{"d":"2024-02-21","p":1,"s":"Marc H.","k":"Lutri Pile","w":4,"l":0,"t":0,"g":4},{"d":"2024-02-21","p":2,"s":"Manuel S.","k":"Boros Convoke","w":3,"l":1,"t":0,"g":4},{"d":"2024-02-21","p":3,"s":"Dr. D.","k":"Amalia Combo","w":3,"l":1,"t":0,"g":4},{"d":"2024-02-21","p":4,"s":"Miau","k":"Azorius Control","w":2,"l":1,"t":1,"g":4},{"d":"2024-02-21","p":5,"s":"Daniel Br.","k":"Rakdos Midrange","w":2,"l":2,"t":0,"g":4},{"d":"2024-02-21","p":6,"s":"Basti","k":"Rakdos Midrange","w":2,"l":2,"t":0,"g":4},{"d":"2024-02-21","p":7,"s":"Fabian","k":"Boros Heroic","w":2,"l":2,"t":0,"g":4},{"d":"2024-02-21","p":8,"s":"Lukas K.","k":"5c Bring to Light","w":2,"l":2,"t":0,"g":4},{"d":"2024-02-21","p":9,"s":"Daniel B.","k":"Rakdos Midrange","w":1,"l":1,"t":2,"g":4},{"d":"2024-02-21","p":10,"s":"Stephan","k":"Amalia Combo","w":1,"l":1,"t":2,"g":4},{"d":"2024-02-21","p":11,"s":"Andreas H.","k":"Gruul Stompy","w":0,"l":3,"t":1,"g":4},{"d":"2024-03-05","p":1,"s":"Philipp","k":"Azorius Ensoul","w":2,"l":1,"t":0,"g":3},{"d":"2024-03-05","p":2,"s":"Stephan","k":"Rakdos Vampires","w":2,"l":1,"t":0,"g":3},{"d":"2024-03-05","p":3,"s":"Leo L.","k":"Azorius Control","w":1,"l":1,"t":1,"g":3},{"d":"2024-03-05","p":4,"s":"Daniel B.","k":"Dimir Control","w":1,"l":1,"t":1,"g":3},{"d":"2024-03-05","p":5,"s":"Dr. D.","k":"Green Devotion","w":1,"l":2,"t":0,"g":3},{"d":"2024-03-05","p":6,"s":"Miau","k":"Dimir Control","w":0,"l":1,"t":2,"g":3},{"d":"2024-03-19","p":1,"s":"Fabian","k":"Mono B Waste Not","w":3,"l":1,"t":0,"g":4},{"d":"2024-03-19","p":2,"s":"Philipp","k":"Izzet Ensoul","w":3,"l":1,"t":0,"g":4},{"d":"2024-03-19","p":3,"s":"Manuel S.","k":"Boros Convoke","w":2,"l":1,"t":1,"g":4},{"d":"2024-03-19","p":4,"s":"Andreas W.","k":"Izzet Phoenix","w":2,"l":1,"t":1,"g":4},{"d":"2024-03-19","p":5,"s":"Lukas K.","k":"5c Bring to Light","w":1,"l":0,"t":3,"g":4},{"d":"2024-03-19","p":6,"s":"Philipp H.","k":"UR+ Creativity","w":1,"l":2,"t":1,"g":4},{"d":"2024-03-19","p":7,"s":"Miau","k":"Lotus Field","w":1,"l":2,"t":1,"g":4},{"d":"2024-03-19","p":8,"s":"David S.","k":"Izzet Phoenix","w":1,"l":2,"t":1,"g":4},{"d":"2024-03-19","p":9,"s":"Marc U.","k":"Azorius Control","w":0,"l":1,"t":3,"g":4},{"d":"2024-03-19","p":10,"s":"Leo L.","k":"Azorius Control","w":0,"l":3,"t":1,"g":4},{"d":"2024-04-02","p":1,"s":"Stephan","k":"Rakdos Vampires","w":3,"l":1,"t":0,"g":4},{"d":"2024-04-02","p":2,"s":"Miau","k":"Azorius Control","w":3,"l":1,"t":0,"g":4},{"d":"2024-04-02","p":3,"s":"Marc H.","k":"Lotus Field","w":3,"l":1,"t":0,"g":4},{"d":"2024-04-02","p":4,"s":"Leo T.","k":"Mono W Humans","w":3,"l":1,"t":0,"g":4},{"d":"2024-04-02","p":5,"s":"Jonas F.","k":"Boros Pia","w":2,"l":2,"t":0,"g":4},{"d":"2024-04-02","p":6,"s":"Gaara","k":"Mono B Control","w":2,"l":2,"t":0,"g":4},{"d":"2024-04-02","p":7,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":3,"t":0,"g":4},{"d":"2024-04-02","p":8,"s":"Leo L.","k":"4/5c Incarnation","w":1,"l":3,"t":0,"g":4},{"d":"2024-04-02","p":9,"s":"Daniel B.","k":"Dimir Control","w":1,"l":3,"t":0,"g":4},{"d":"2024-04-02","p":10,"s":"Fabian","k":"Mardu Heroic","w":1,"l":3,"t":0,"g":4},{"d":"2024-04-16","p":1,"s":"Miau","k":"5c Bring to Light","w":4,"l":0,"t":0,"g":4},{"d":"2024-04-16","p":2,"s":"Leo L.","k":"4/5c Incarnation","w":3,"l":1,"t":0,"g":4},{"d":"2024-04-16","p":3,"s":"Manuel S.","k":"Boros Convoke","w":2,"l":1,"t":1,"g":4},{"d":"2024-04-16","p":4,"s":"Lukas K.","k":"5c Bring to Light","w":2,"l":1,"t":1,"g":4},{"d":"2024-04-16","p":5,"s":"Stephan","k":"Rakdos Vampires","w":2,"l":1,"t":1,"g":4},{"d":"2024-04-16","p":6,"s":"Fabian","k":"Mono B Waste Not","w":2,"l":2,"t":0,"g":4},{"d":"2024-04-16","p":7,"s":"Daniel B.","k":"Rakdos Transmogrify","w":2,"l":2,"t":0,"g":4},{"d":"2024-04-16","p":8,"s":"Andreas W.","k":"Jeskai Transmogrify","w":1,"l":2,"t":1,"g":4},{"d":"2024-04-16","p":9,"s":"Leo T.","k":"Mono W Humans","w":1,"l":2,"t":1,"g":4},{"d":"2024-04-16","p":10,"s":"Dr. D.","k":"Amalia Combo","w":1,"l":2,"t":1,"g":4},{"d":"2024-04-16","p":11,"s":"Daniel M.","k":"Izzet Phoenix","w":0,"l":2,"t":2,"g":4},{"d":"2024-04-16","p":12,"s":"Kris","k":"Mikaeus brew","w":0,"l":4,"t":0,"g":4},{"d":"2024-04-30","p":1,"s":"Andreas H.","k":"Gruul Prowess","w":4,"l":0,"t":0,"g":4},{"d":"2024-04-30","p":2,"s":"Dr. D.","k":"Soulflayer","w":3,"l":1,"t":0,"g":4},{"d":"2024-04-30","p":3,"s":"Philipp","k":"Unbekannt","w":2,"l":1,"t":1,"g":4},{"d":"2024-04-30","p":4,"s":"Stephan","k":"Rakdos Vampires","w":2,"l":2,"t":0,"g":4},{"d":"2024-04-30","p":5,"s":"Daniel M.","k":"Unbekannt","w":1,"l":2,"t":1,"g":4},{"d":"2024-04-30","p":6,"s":"Andreas W.","k":"Izzet Phoenix","w":1,"l":2,"t":1,"g":4},{"d":"2024-04-30","p":7,"s":"Marc H.","k":"Lotus Field","w":1,"l":2,"t":1,"g":4},{"d":"2024-04-30","p":8,"s":"Daniel B.","k":"Azorius Control","w":1,"l":2,"t":1,"g":4},{"d":"2024-04-30","p":9,"s":"Miau","k":"Unbekannt","w":0,"l":1,"t":3,"g":4},{"d":"2024-04-30","p":10,"s":"Pablo","k":"Azurios Lotus Field","w":0,"l":2,"t":2,"g":4},{"d":"2024-05-14","p":1,"s":"Philipp H.","k":"Izzet Phoenix","w":3,"l":0,"t":1,"g":4},{"d":"2024-05-14","p":2,"s":"Fabian","k":"Gruul Prowess","w":3,"l":1,"t":0,"g":4},{"d":"2024-05-14","p":3,"s":"Miau","k":"Quintorius Combo","w":2,"l":1,"t":1,"g":4},{"d":"2024-05-14","p":4,"s":"Joshi","k":"Rakdos Midrange","w":2,"l":1,"t":1,"g":4},{"d":"2024-05-14","p":5,"s":"Andreas H.","k":"Gruul Prowess","w":2,"l":2,"t":0,"g":4},{"d":"2024-05-14","p":6,"s":"Manuel S.","k":"Azorius Ensoul","w":2,"l":2,"t":0,"g":4},{"d":"2024-05-14","p":7,"s":"Stephan","k":"Rakdos Vampires","w":2,"l":2,"t":0,"g":4},{"d":"2024-05-14","p":8,"s":"Daniel B.","k":"Mono B Control","w":1,"l":2,"t":1,"g":4},{"d":"2024-05-14","p":9,"s":"Leo L.","k":"Azorius Spirits","w":0,"l":2,"t":2,"g":4},{"d":"2024-05-14","p":10,"s":"Dr. D.","k":"Boros Heroic","w":0,"l":4,"t":0,"g":4},{"d":"2024-05-28","p":1,"s":"Jonas G.","k":"Green Devotion","w":3,"l":1,"t":0,"g":4},{"d":"2024-05-28","p":2,"s":"Fabian","k":"Gruul Prowess","w":3,"l":1,"t":0,"g":4},{"d":"2024-05-28","p":3,"s":"Philipp H.","k":"Izzet Phoenix","w":2,"l":1,"t":1,"g":4},{"d":"2024-05-28","p":4,"s":"Michael A.","k":"Gruul Prowess","w":2,"l":1,"t":1,"g":4},{"d":"2024-05-28","p":5,"s":"Leo L.","k":"Azorius Spirits","w":1,"l":2,"t":1,"g":4},{"d":"2024-05-28","p":6,"s":"Andreas H.","k":"Rakdos Midrange","w":1,"l":2,"t":1,"g":4},{"d":"2024-05-28","p":7,"s":"Jonas F.","k":"Boros Pia","w":1,"l":3,"t":0,"g":4},{"d":"2024-05-28","p":8,"s":"Lukas K.","k":"5c Bring to Light","w":1,"l":3,"t":0,"g":4},{"d":"2024-06-11","p":1,"s":"Philipp H.","k":"Izzet Phoenix","w":2,"l":0,"t":1,"g":3},{"d":"2024-06-11","p":2,"s":"Leo L.","k":"Keruga Fires","w":2,"l":1,"t":0,"g":3},{"d":"2024-06-11","p":3,"s":"Miau","k":"Quintorius Combo","w":2,"l":1,"t":0,"g":3},{"d":"2024-06-11","p":4,"s":"Stephan","k":"Rakdos Vampires","w":1,"l":0,"t":2,"g":3},{"d":"2024-06-11","p":5,"s":"Tobias","k":"Azorius Control","w":1,"l":1,"t":1,"g":3},{"d":"2024-06-11","p":6,"s":"Daniel B.","k":"Rakdos Vampires","w":1,"l":2,"t":0,"g":3},{"d":"2024-06-11","p":7,"s":"Dr. D.","k":"Green Devotion","w":1,"l":2,"t":0,"g":3},{"d":"2024-06-25","p":1,"s":"Stephan","k":"Rakdos Vampires","w":4,"l":0,"t":0,"g":4},{"d":"2024-06-25","p":2,"s":"Miau","k":"Quintorius Combo","w":3,"l":1,"t":0,"g":4},{"d":"2024-06-25","p":3,"s":"Fabian","k":"Mono B Waste Not","w":3,"l":1,"t":0,"g":4},{"d":"2024-06-25","p":4,"s":"Manuel S.","k":"Mono W Humans","w":3,"l":1,"t":0,"g":4},{"d":"2024-06-25","p":5,"s":"Andreas H.","k":"Rakdos Vampires","w":2,"l":2,"t":0,"g":4},{"d":"2024-06-25","p":6,"s":"Leo L.","k":"Azorius Spirits","w":2,"l":2,"t":0,"g":4},{"d":"2024-06-25","p":7,"s":"Dr. D.","k":"Green Devotion","w":2,"l":2,"t":0,"g":4},{"d":"2024-06-25","p":8,"s":"Daniel B.","k":"Rakdos Vampires","w":1,"l":4,"t":0,"g":5},{"d":"2024-06-25","p":9,"s":"Jonas F.","k":"Boros Pia","w":0,"l":4,"t":0,"g":4},{"d":"2024-06-25","p":10,"s":"Andreas W.","k":"Rakdos Vampires","w":0,"l":4,"t":0,"g":4},{"d":"2024-07-10","p":1,"s":"Fabian","k":"Mardu Doom Foretold","w":3,"l":0,"t":1,"g":4},{"d":"2024-07-10","p":2,"s":"Manuel S.","k":"Mono W Humans","w":3,"l":1,"t":0,"g":4},{"d":"2024-07-10","p":3,"s":"Daniel M.","k":"Rakdos Vampires","w":2,"l":1,"t":1,"g":4},{"d":"2024-07-10","p":4,"s":"Andreas H.","k":"Rakdos Vampires","w":2,"l":2,"t":0,"g":4},{"d":"2024-07-10","p":5,"s":"Stefan","k":"Izzet Phoenix","w":2,"l":2,"t":0,"g":4},{"d":"2024-07-10","p":6,"s":"Leo L.","k":"Keruga Fires","w":2,"l":2,"t":0,"g":4},{"d":"2024-07-10","p":7,"s":"Lukas K.","k":"5c Bring to Light","w":1,"l":1,"t":2,"g":4},{"d":"2024-07-10","p":8,"s":"Dr. D.","k":"Green Devotion","w":1,"l":2,"t":1,"g":4},{"d":"2024-07-10","p":9,"s":"Stephan","k":"Rakdos Vampires","w":1,"l":2,"t":1,"g":4},{"d":"2024-07-16","p":1,"s":"Stephan","k":"Amalia Combo","w":4,"l":0,"t":0,"g":4},{"d":"2024-07-16","p":2,"s":"Daniel B.","k":"Rakdos Vampires","w":3,"l":1,"t":0,"g":4},{"d":"2024-07-16","p":3,"s":"Manuel S.","k":"Mono W Humans","w":2,"l":2,"t":0,"g":4},{"d":"2024-07-16","p":4,"s":"Philipp H.","k":"Izzet Phoenix","w":2,"l":2,"t":0,"g":4},{"d":"2024-07-16","p":5,"s":"Lukas K.","k":"Soulflayer","w":2,"l":2,"t":0,"g":4},{"d":"2024-07-16","p":6,"s":"Andreas H.","k":"Rakdos Transmogrify","w":1,"l":2,"t":1,"g":4},{"d":"2024-07-16","p":7,"s":"Leo L.","k":"Azorius Spirits","w":1,"l":3,"t":0,"g":4},{"d":"2024-07-16","p":8,"s":"Andreas W.","k":"5c Bring to Light","w":0,"l":3,"t":1,"g":4},{"d":"2024-07-23","p":1,"s":"Jonas G.","k":"Green Devotion","w":3,"l":0,"t":1,"g":4},{"d":"2024-07-23","p":2,"s":"Miau","k":"Azorius Control","w":3,"l":0,"t":1,"g":4},{"d":"2024-07-23","p":3,"s":"Leo L.","k":"Azorius Spirits","w":2,"l":2,"t":0,"g":4},{"d":"2024-07-23","p":4,"s":"Fabian","k":"Mardu Doom Foretold","w":2,"l":2,"t":0,"g":4},{"d":"2024-07-23","p":5,"s":"Andreas H.","k":"Rakdos Transmogrify","w":2,"l":2,"t":0,"g":4},{"d":"2024-07-23","p":6,"s":"Stephan","k":"Amalia Combo","w":1,"l":3,"t":0,"g":4},{"d":"2024-07-23","p":7,"s":"Dr. D.","k":"Green Devotion","w":1,"l":3,"t":0,"g":4},{"d":"2024-07-23","p":8,"s":"Daniel B.","k":"Rakdos Vampires","w":1,"l":3,"t":0,"g":4},{"d":"2024-07-30","p":1,"s":"Miau","k":"Azorius Control","w":3,"l":0,"t":0,"g":3},{"d":"2024-07-30","p":2,"s":"Fabian","k":"Mono B Control","w":2,"l":1,"t":0,"g":3},{"d":"2024-07-30","p":3,"s":"Lukas K.","k":"Izzet Prowess","w":1,"l":1,"t":1,"g":3},{"d":"2024-07-30","p":4,"s":"Stephan","k":"Amalia Combo","w":1,"l":1,"t":1,"g":3},{"d":"2024-07-30","p":5,"s":"Leo L.","k":"Azorius Spirits","w":0,"l":2,"t":1,"g":3},{"d":"2024-07-30","p":6,"s":"Andreas W.","k":"Izzet Phoenix","w":0,"l":3,"t":0,"g":3},{"d":"2024-08-06","p":1,"s":"Dr. D.","k":"Amalia Combo","w":2,"l":0,"t":1,"g":3},{"d":"2024-08-06","p":2,"s":"Manuel S.","k":"Selesnya Hop to It","w":2,"l":1,"t":0,"g":3},{"d":"2024-08-06","p":3,"s":"Fabian","k":"Mono B Waste Not","w":1,"l":1,"t":1,"g":3},{"d":"2024-08-06","p":4,"s":"Stephan","k":"Amalia Combo","w":1,"l":1,"t":1,"g":3},{"d":"2024-08-06","p":5,"s":"Jonas G.","k":"Green Devotion","w":1,"l":2,"t":0,"g":3},{"d":"2024-08-06","p":6,"s":"Miau","k":"Azorius Control","w":0,"l":2,"t":1,"g":3},{"d":"2024-08-13","p":1,"s":"Manuel S.","k":"Selesnya Hop to It","w":3,"l":0,"t":0,"g":3},{"d":"2024-08-13","p":2,"s":"Daniel B.","k":"Rakdos Vampires","w":2,"l":1,"t":0,"g":3},{"d":"2024-08-13","p":3,"s":"Lukas K.","k":"Golgari Ygra","w":2,"l":1,"t":0,"g":3},{"d":"2024-08-13","p":4,"s":"Miau","k":"5c Bring to Light","w":2,"l":1,"t":0,"g":3},{"d":"2024-08-13","p":5,"s":"Philipp H.","k":"Yorion Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2024-08-13","p":6,"s":"Stephan","k":"Amalia Combo","w":1,"l":2,"t":0,"g":3},{"d":"2024-08-13","p":7,"s":"Daniel M.","k":"Mono B Control","w":1,"l":2,"t":0,"g":3},{"d":"2024-08-13","p":8,"s":"Leo L.","k":"5c Bring to Light","w":0,"l":3,"t":0,"g":3},{"d":"2024-08-20","p":1,"s":"Stephan","k":"Rakdos Vampires","w":2,"l":0,"t":0,"g":2},{"d":"2024-08-20","p":2,"s":"Miau","k":"Golgari Ygra","w":1,"l":1,"t":0,"g":2},{"d":"2024-08-20","p":3,"s":"Leo L.","k":"5c Bring to Light","w":0,"l":2,"t":0,"g":2},{"d":"2024-08-28","p":1,"s":"Jonas F.","k":"Boros Burn","w":2,"l":1,"t":0,"g":3},{"d":"2024-08-28","p":2,"s":"Leo L.","k":"5c Bring to Light","w":2,"l":1,"t":0,"g":3},{"d":"2024-08-28","p":3,"s":"Lukas K.","k":"Golgari Ygra","w":2,"l":1,"t":0,"g":3},{"d":"2024-08-28","p":4,"s":"Manuel S.","k":"Selesnya Hop to It","w":1,"l":2,"t":0,"g":3},{"d":"2024-08-28","p":5,"s":"Daniel B.","k":"Rakdos Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2024-08-28","p":6,"s":"Stephan","k":"Dimir Ensoul Artifact","w":1,"l":2,"t":0,"g":3},{"d":"2024-09-03","p":1,"s":"Leo L.","k":"5c Bring to Light","w":3,"l":0,"t":0,"g":3},{"d":"2024-09-03","p":2,"s":"Lukas K.","k":"Golgari Ygra","w":2,"l":1,"t":0,"g":3},{"d":"2024-09-03","p":3,"s":"Stephan","k":"Abzan Lifegain Bats","w":1,"l":2,"t":0,"g":3},{"d":"2024-09-03","p":4,"s":"Philipp H.","k":"Temur Pheonix","w":0,"l":3,"t":0,"g":3},{"d":"2024-09-10","p":1,"s":"Miau","k":"Jund Sacrifice","w":3,"l":0,"t":0,"g":3},{"d":"2024-09-10","p":2,"s":"Christian M.","k":"Azorius Spirits","w":2,"l":1,"t":0,"g":3},{"d":"2024-09-10","p":3,"s":"Leo L.","k":"5c Bring to Light","w":1,"l":2,"t":0,"g":3},{"d":"2024-09-10","p":4,"s":"Manuel S.","k":"Selesnya Hop to It","w":0,"l":3,"t":0,"g":3},{"d":"2024-09-17","p":1,"s":"Philipp H.","k":"Temur Pheonix","w":3,"l":0,"t":0,"g":3},{"d":"2024-09-17","p":2,"s":"Stephan","k":"Golgari Ygra","w":2,"l":1,"t":0,"g":3},{"d":"2024-09-17","p":3,"s":"Miau","k":"Jund Sacrifice","w":2,"l":1,"t":0,"g":3},{"d":"2024-09-17","p":4,"s":"Christian M.","k":"Izzet Phoenix","w":1,"l":1,"t":1,"g":3},{"d":"2024-09-17","p":5,"s":"Daniel B.","k":"Rakdos Midrange","w":1,"l":1,"t":1,"g":3},{"d":"2024-09-17","p":6,"s":"Dr. D.","k":"Selesyna Company","w":1,"l":2,"t":0,"g":3},{"d":"2024-09-17","p":7,"s":"Leo L.","k":"5c Bring to Light","w":1,"l":2,"t":0,"g":3},{"d":"2024-09-17","p":8,"s":"Manuel S.","k":"Rakdos Prowess","w":0,"l":3,"t":0,"g":3},{"d":"2024-09-24","p":1,"s":"Manuel S.","k":"Mono W Humans","w":4,"l":0,"t":0,"g":4},{"d":"2024-09-24","p":2,"s":"Miau","k":"Azorius Control","w":3,"l":1,"t":0,"g":4},{"d":"2024-09-24","p":3,"s":"Jonas F.","k":"Boros Pia","w":2,"l":2,"t":0,"g":4},{"d":"2024-09-24","p":4,"s":"Philipp H.","k":"Temur Pheonix","w":2,"l":2,"t":0,"g":4},{"d":"2024-09-24","p":5,"s":"Jonas G.","k":"Green Devotion","w":2,"l":2,"t":0,"g":4},{"d":"2024-09-24","p":6,"s":"Leo L.","k":"5c Bring to Light","w":1,"l":2,"t":1,"g":4},{"d":"2024-09-24","p":7,"s":"Christian M.","k":"Izzet Phoenix","w":1,"l":2,"t":1,"g":4},{"d":"2024-09-24","p":8,"s":"Stephan","k":"Abzan Lifegain Bats","w":0,"l":4,"t":0,"g":4},{"d":"2024-10-01","p":1,"s":"Andreas W.","k":"Rakdos Midrange","w":3,"l":0,"t":0,"g":3},{"d":"2024-10-01","p":2,"s":"Christian M.","k":"Azorius Spirits","w":2,"l":1,"t":0,"g":3},{"d":"2024-10-01","p":3,"s":"Miau","k":"Mono White Tokens","w":2,"l":1,"t":0,"g":3},{"d":"2024-10-01","p":4,"s":"Stephan","k":"Jund Sacrifice","w":1,"l":1,"t":1,"g":3},{"d":"2024-10-01","p":5,"s":"Philipp H.","k":"Izzet Phoenix","w":0,"l":2,"t":1,"g":3},{"d":"2024-10-08","p":1,"s":"Stephan","k":"Jund Sacrifice","w":2,"l":0,"t":1,"g":3},{"d":"2024-10-08","p":2,"s":"Leo L.","k":"5c Bring to Light","w":2,"l":1,"t":0,"g":3},{"d":"2024-10-08","p":3,"s":"Jonas G.","k":"Green Devotion","w":2,"l":1,"t":0,"g":3},{"d":"2024-10-08","p":4,"s":"Miau","k":"Boros Control","w":2,"l":1,"t":0,"g":3},{"d":"2024-10-08","p":5,"s":"Jonas F.","k":"Boros Pia","w":1,"l":1,"t":1,"g":3},{"d":"2024-10-08","p":6,"s":"Manuel S.","k":"Boros Convoke","w":1,"l":1,"t":1,"g":3},{"d":"2024-10-08","p":7,"s":"Christian M.","k":"Azorius Spirits","w":0,"l":2,"t":1,"g":3},{"d":"2024-10-08","p":8,"s":"Philipp H.","k":"Dimir Control","w":0,"l":3,"t":0,"g":3},{"d":"2024-10-15","p":1,"s":"Lukas K.","k":"4/5c Incarnation","w":2,"l":0,"t":1,"g":3},{"d":"2024-10-15","p":2,"s":"Stephan","k":"Jund Sacrifice","w":2,"l":1,"t":0,"g":3},{"d":"2024-10-15","p":3,"s":"Christian M.","k":"Azorius Spirits","w":1,"l":0,"t":2,"g":3},{"d":"2024-10-15","p":4,"s":"Daniel B.","k":"Azorius Control","w":1,"l":0,"t":2,"g":3},{"d":"2024-10-15","p":5,"s":"Andreas W.","k":"Rakdos Midrange","w":1,"l":1,"t":1,"g":3},{"d":"2024-10-15","p":6,"s":"Miau","k":"Golgari Demons","w":1,"l":2,"t":0,"g":3},{"d":"2024-10-15","p":7,"s":"Fabian","k":"Mono B Demons","w":1,"l":2,"t":0,"g":3},{"d":"2024-10-15","p":8,"s":"Manuel S.","k":"4/5c Incarnation","w":0,"l":3,"t":0,"g":3},{"d":"2024-10-22","p":1,"s":"Daniel M.","k":"Rakdos Transmogrify","w":2,"l":0,"t":1,"g":3},{"d":"2024-10-22","p":2,"s":"Marc U.","k":"Azorius Control","w":2,"l":0,"t":1,"g":3},{"d":"2024-10-22","p":3,"s":"Manuel S.","k":"4/5c Incarnation","w":2,"l":1,"t":0,"g":3},{"d":"2024-10-22","p":4,"s":"Fabian","k":"Mono B Demons","w":1,"l":1,"t":1,"g":3},{"d":"2024-10-22","p":5,"s":"Miau","k":"Mono B Devotion","w":1,"l":1,"t":1,"g":3},{"d":"2024-10-22","p":6,"s":"Jonas G.","k":"Green Devotion","w":1,"l":2,"t":0,"g":3},{"d":"2024-10-22","p":7,"s":"Frøya","k":"Dimir Control","w":1,"l":2,"t":0,"g":3},{"d":"2024-10-22","p":8,"s":"Christian M.","k":"Azorius Spirits","w":0,"l":3,"t":0,"g":3},{"d":"2024-10-29","p":1,"s":"Manuel S.","k":"4/5c Incarnation","w":2,"l":0,"t":1,"g":3},{"d":"2024-10-29","p":2,"s":"Christian M.","k":"Izzet Phoenix","w":1,"l":0,"t":2,"g":3},{"d":"2024-10-29","p":3,"s":"Miau","k":"Selesyna Company","w":1,"l":1,"t":1,"g":3},{"d":"2024-10-29","p":4,"s":"Dr. D.","k":"Selesyna Company","w":1,"l":1,"t":1,"g":3},{"d":"2024-10-29","p":5,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2024-10-29","p":6,"s":"Leo L.","k":"Azorius Spirits","w":0,"l":2,"t":1,"g":3},{"d":"2024-11-05","p":1,"s":"Miau","k":"4c Zur Overlords","w":3,"l":0,"t":0,"g":3},{"d":"2024-11-05","p":2,"s":"Dr. D.","k":"Yorion Company","w":2,"l":1,"t":0,"g":3},{"d":"2024-11-05","p":3,"s":"Stephan","k":"Jund Sacrifice","w":1,"l":1,"t":1,"g":3},{"d":"2024-11-05","p":4,"s":"Manuel S.","k":"4/5c Incarnation","w":1,"l":2,"t":0,"g":3},{"d":"2024-11-05","p":5,"s":"Christian M.","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2024-11-05","p":6,"s":"Lukas K.","k":"4/5c Incarnation","w":0,"l":2,"t":1,"g":3},{"d":"2024-11-12","p":1,"s":"Max","k":"Rakdos Prowess","w":2,"l":1,"t":0,"g":3},{"d":"2024-11-12","p":2,"s":"Leo L.","k":"Esper Oculus","w":2,"l":1,"t":0,"g":3},{"d":"2024-11-12","p":3,"s":"Manuel S.","k":"Selesnya Clerics","w":1,"l":0,"t":2,"g":3},{"d":"2024-11-12","p":4,"s":"Miau","k":"4c Zur Overlords","w":1,"l":1,"t":1,"g":3},{"d":"2024-11-12","p":5,"s":"Stephan","k":"4c Zur Overlords","w":1,"l":2,"t":0,"g":3},{"d":"2024-11-12","p":6,"s":"Dr. D.","k":"Golgari Ygra","w":0,"l":2,"t":1,"g":3},{"d":"2024-11-19","p":1,"s":"Manuel S.","k":"Selesnya Clerics","w":3,"l":0,"t":0,"g":3},{"d":"2024-11-19","p":2,"s":"Lukas K.","k":"Jund Sacrifice","w":2,"l":1,"t":0,"g":3},{"d":"2024-11-19","p":3,"s":"Max","k":"Rakdos Prowess","w":1,"l":1,"t":1,"g":3},{"d":"2024-11-19","p":4,"s":"Christian M.","k":"Boros Burn","w":1,"l":2,"t":0,"g":3},{"d":"2024-11-19","p":5,"s":"Stephan","k":"4c Zur Overlords","w":1,"l":2,"t":0,"g":3},{"d":"2024-11-19","p":6,"s":"Leo L.","k":"Esper Oculus","w":0,"l":2,"t":1,"g":3},{"d":"2024-11-26","p":1,"s":"Stephan","k":"4c Zur Overlords","w":3,"l":1,"t":0,"g":4},{"d":"2024-11-26","p":2,"s":"Jonas G.","k":"Mono W Artifacts","w":3,"l":1,"t":0,"g":4},{"d":"2024-11-26","p":3,"s":"Leo L.","k":"Esper Oculus","w":3,"l":1,"t":0,"g":4},{"d":"2024-11-26","p":4,"s":"Miau","k":"4c Zur Overlords","w":2,"l":1,"t":1,"g":4},{"d":"2024-11-26","p":5,"s":"Christian M.","k":"Boros Burn","w":2,"l":0,"t":2,"g":4},{"d":"2024-11-26","p":6,"s":"Matze","k":"Boros Convoke","w":1,"l":2,"t":1,"g":4},{"d":"2024-11-26","p":7,"s":"Dr. D.","k":"Soulflayer","w":1,"l":3,"t":0,"g":4},{"d":"2024-11-26","p":8,"s":"Philipp H.","k":"Izzet Phoenix","w":0,"l":4,"t":0,"g":4},{"d":"2024-12-10","p":1,"s":"Christian M.","k":"Boros Burn","w":2,"l":1,"t":0,"g":3},{"d":"2024-12-10","p":2,"s":"Lukas K.","k":"Mardu Reanimator","w":2,"l":1,"t":0,"g":3},{"d":"2024-12-10","p":3,"s":"Miau","k":"Jeskai Control","w":1,"l":1,"t":1,"g":3},{"d":"2024-12-10","p":4,"s":"Stephan","k":"Gruul Delirium","w":0,"l":2,"t":1,"g":3},{"d":"2025-01-01","p":1,"s":"Stephan","k":"Orzhov Clerics","w":3,"l":0,"t":0,"g":3},{"d":"2025-01-01","p":2,"s":"Marc H.","k":"Rakdos Prowess","w":2,"l":1,"t":0,"g":3},{"d":"2025-01-01","p":3,"s":"Marc U.","k":"Azorius Control","w":2,"l":1,"t":0,"g":3},{"d":"2025-01-01","p":4,"s":"Miau","k":"Dimir Reanimator","w":1,"l":2,"t":0,"g":3},{"d":"2025-01-01","p":5,"s":"Manuel S.","k":"Selesnya Clerics","w":1,"l":2,"t":0,"g":3},{"d":"2025-01-01","p":6,"s":"Matze","k":"Rakdos Prowess","w":0,"l":3,"t":0,"g":3},{"d":"2025-01-07","p":1,"s":"Christian M.","k":"Izzet Phoenix","w":3,"l":0,"t":0,"g":3},{"d":"2025-01-07","p":2,"s":"Stephan","k":"Orzhov Clerics","w":2,"l":1,"t":0,"g":3},{"d":"2025-01-07","p":3,"s":"Dr. D.","k":"Dimir Reanimator","w":1,"l":1,"t":1,"g":3},{"d":"2025-01-07","p":4,"s":"Miau","k":"Selesyna Company","w":1,"l":2,"t":0,"g":3},{"d":"2025-01-07","p":5,"s":"Lukas K.","k":"4/5c Incarnation","w":0,"l":1,"t":2,"g":3},{"d":"2025-01-07","p":6,"s":"Leo L.","k":"5c Bring to Light","w":0,"l":2,"t":1,"g":3},{"d":"2025-01-14","p":1,"s":"Lukas K.","k":"Mardu Reanimator","w":2,"l":0,"t":1,"g":3},{"d":"2025-01-14","p":2,"s":"Stephan","k":"Orzhov Clerics","w":2,"l":1,"t":0,"g":3},{"d":"2025-01-14","p":3,"s":"Leo L.","k":"5c Bring to Light","w":1,"l":1,"t":1,"g":3},{"d":"2025-01-14","p":4,"s":"Manuel S.","k":"Selesnya Clerics","w":1,"l":1,"t":1,"g":3},{"d":"2025-01-14","p":5,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2025-01-14","p":6,"s":"Miau","k":"Azorius Spirits","w":0,"l":2,"t":1,"g":3},{"d":"2025-01-21","p":1,"s":"Daniel M.","k":"Rakdos Transmogrify","w":4,"l":0,"t":0,"g":4},{"d":"2025-01-21","p":2,"s":"Leo L.","k":"Dimir Ninjas","w":3,"l":1,"t":0,"g":4},{"d":"2025-01-21","p":3,"s":"Manuel S.","k":"Azorius Humans","w":2,"l":1,"t":1,"g":4},{"d":"2025-01-21","p":4,"s":"Miau","k":"Azorius Colossos","w":2,"l":2,"t":0,"g":4},{"d":"2025-01-21","p":5,"s":"Christian M.","k":"Izzet Phoenix","w":2,"l":2,"t":0,"g":4},{"d":"2025-01-21","p":6,"s":"Daniel B.","k":"Azorius Control","w":1,"l":1,"t":2,"g":4},{"d":"2025-01-21","p":7,"s":"Andreas H.","k":"Rakdos Midrange","w":1,"l":1,"t":2,"g":4},{"d":"2025-01-21","p":8,"s":"Dr. D.","k":"Grixis Reanimator","w":1,"l":2,"t":1,"g":4},{"d":"2025-01-21","p":9,"s":"Stephan","k":"Orzhov Clerics","w":1,"l":3,"t":0,"g":4},{"d":"2025-01-21","p":10,"s":"Lukas K.","k":"Jund Sacrifice","w":0,"l":4,"t":0,"g":4},{"d":"2025-01-28","p":1,"s":"Leo L.","k":"Dimir Ninjas","w":3,"l":0,"t":0,"g":3},{"d":"2025-01-28","p":2,"s":"Miau","k":"Rakdos Prowess","w":2,"l":1,"t":0,"g":3},{"d":"2025-01-28","p":3,"s":"Christian M.","k":"Boros Burn","w":2,"l":1,"t":0,"g":3},{"d":"2025-01-28","p":4,"s":"Stephan","k":"Orzhov Clerics","w":1,"l":2,"t":0,"g":3},{"d":"2025-01-28","p":5,"s":"Lukas K.","k":"Mardu Reanimator","w":1,"l":2,"t":0,"g":3},{"d":"2025-02-04","p":1,"s":"Leo L.","k":"Dimir Ninjas","w":2,"l":0,"t":1,"g":3},{"d":"2025-02-04","p":2,"s":"Christian M.","k":"Boros Burn","w":2,"l":1,"t":0,"g":3},{"d":"2025-02-04","p":3,"s":"Lukas K.","k":"5c Yorion Zur Overlords","w":2,"l":1,"t":0,"g":3},{"d":"2025-02-04","p":4,"s":"Miau","k":"Mardu Doom Foretold","w":1,"l":1,"t":1,"g":3},{"d":"2025-02-04","p":5,"s":"Stephan","k":"4c Zur Overlords","w":1,"l":2,"t":0,"g":3},{"d":"2025-02-04","p":6,"s":"Manuel S.","k":"Bant Neoform","w":0,"l":3,"t":0,"g":3},{"d":"2025-02-18","p":1,"s":"Miau","k":"Quintorius Combo","w":3,"l":0,"t":0,"g":3},{"d":"2025-02-18","p":2,"s":"Christian M.","k":"Rakdos Midrange","w":1,"l":1,"t":1,"g":3},{"d":"2025-02-18","p":3,"s":"Stephan","k":"4c Zur Overlords","w":1,"l":2,"t":0,"g":3},{"d":"2025-02-18","p":4,"s":"Leo L.","k":"Dimir Ninjas","w":0,"l":2,"t":1,"g":3},{"d":"2025-02-25","p":1,"s":"Daniel M.","k":"Izzet Creativity","w":2,"l":0,"t":1,"g":3},{"d":"2025-02-25","p":2,"s":"Christian M.","k":"Rakdos Midrange","w":2,"l":0,"t":1,"g":3},{"d":"2025-02-25","p":3,"s":"Leo L.","k":"Dimir Ninjas","w":2,"l":1,"t":0,"g":3},{"d":"2025-02-25","p":4,"s":"Miau","k":"Quintorius Combo","w":2,"l":1,"t":0,"g":3},{"d":"2025-02-25","p":5,"s":"Daniel B.","k":"Rakdos Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2025-02-25","p":6,"s":"Matze","k":"Golgari Ygra","w":1,"l":2,"t":0,"g":3},{"d":"2025-02-25","p":7,"s":"Manuel S.","k":"Esper Pixie","w":1,"l":2,"t":0,"g":3},{"d":"2025-02-25","p":8,"s":"Lukas K.","k":"5c Yorion Zur Overlords","w":0,"l":3,"t":0,"g":3},{"d":"2025-03-19","p":1,"s":"Daniel B.","k":"Rakdos Midrange","w":3,"l":0,"t":0,"g":3},{"d":"2025-03-19","p":2,"s":"Daniel M.","k":"Izzet Creativity","w":2,"l":1,"t":0,"g":3},{"d":"2025-03-19","p":3,"s":"Manuel S.","k":"Esper Pixie","w":2,"l":1,"t":0,"g":3},{"d":"2025-03-19","p":4,"s":"Christian M.","k":"Izzet Phoenix","w":1,"l":1,"t":1,"g":3},{"d":"2025-03-19","p":5,"s":"Steven","k":"Azorius Spirits","w":1,"l":1,"t":1,"g":3},{"d":"2025-03-19","p":6,"s":"Andreas W.","k":"Rakdos Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2025-03-19","p":7,"s":"Stephan","k":"Orzhov Clerics","w":1,"l":2,"t":0,"g":3},{"d":"2025-03-19","p":8,"s":"Marc B.","k":"Jund Sacrifice","w":0,"l":3,"t":0,"g":3},{"d":"2025-03-26","p":1,"s":"Stephan","k":"Jund Sacrifice","w":3,"l":0,"t":0,"g":3},{"d":"2025-03-26","p":2,"s":"Christian M.","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2025-03-26","p":3,"s":"Manuel S.","k":"Esper Pixie","w":2,"l":1,"t":0,"g":3},{"d":"2025-03-26","p":4,"s":"Lukas K.","k":"Dimir Ninjas","w":1,"l":2,"t":0,"g":3},{"d":"2025-03-26","p":5,"s":"Leo L.","k":"Mardu Greasefang","w":1,"l":2,"t":0,"g":3},{"d":"2025-04-02","p":1,"s":"Stephan","k":"Jund Sacrifice","w":2,"l":0,"t":1,"g":3},{"d":"2025-04-02","p":2,"s":"Daniel B.","k":"Mono B Waste Not","w":2,"l":0,"t":1,"g":3},{"d":"2025-04-02","p":3,"s":"Manuel S.","k":"Esper Pixie","w":1,"l":1,"t":1,"g":3},{"d":"2025-04-02","p":4,"s":"Christian M.","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2025-04-02","p":5,"s":"Lukas K.","k":"Soulflayer","w":1,"l":2,"t":0,"g":3},{"d":"2025-04-02","p":6,"s":"Leo L.","k":"Dimir Ninjas","w":0,"l":2,"t":1,"g":3},{"d":"2025-04-09","p":1,"s":"Marc H.","k":"Rakdos Sacrifice","w":3,"l":1,"t":0,"g":4},{"d":"2025-04-09","p":2,"s":"Andreas W.","k":"Rakdos Midrange","w":3,"l":1,"t":0,"g":4},{"d":"2025-04-09","p":3,"s":"Stephan","k":"Dredgeless Dredge","w":3,"l":1,"t":0,"g":4},{"d":"2025-04-09","p":4,"s":"Michael A.","k":"Simic Merfolk","w":3,"l":1,"t":0,"g":4},{"d":"2025-04-09","p":5,"s":"Christian M.","k":"Izzet Phoenix","w":2,"l":2,"t":0,"g":4},{"d":"2025-04-09","p":6,"s":"Miau","k":"Azorius Control","w":1,"l":2,"t":1,"g":4},{"d":"2025-04-09","p":7,"s":"Daniel B.","k":"Orzhov Midrange","w":1,"l":2,"t":1,"g":4},{"d":"2025-04-09","p":8,"s":"Leo L.","k":"Dimir Ninjas","w":1,"l":3,"t":0,"g":4},{"d":"2025-04-09","p":9,"s":"Manuel S.","k":"Esper Pixie","w":1,"l":3,"t":0,"g":4},{"d":"2025-04-23","p":1,"s":"Leo L.","k":"5c Bring to Light","w":2,"l":0,"t":1,"g":3},{"d":"2025-04-23","p":2,"s":"Stephan","k":"Dredgeless Dredge","w":1,"l":0,"t":2,"g":3},{"d":"2025-04-23","p":3,"s":"Andreas W.","k":"Rakdos Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2025-04-23","p":4,"s":"Manuel S.","k":"5c Humans","w":0,"l":2,"t":1,"g":3},{"d":"2025-05-01","p":1,"s":"Christian M.","k":"Mono R Aggro","w":3,"l":0,"t":0,"g":3},{"d":"2025-05-01","p":2,"s":"Stephan","k":"Dredgeless Dredge","w":2,"l":1,"t":0,"g":3},{"d":"2025-05-01","p":3,"s":"Lukas K.","k":"Izzet Phoenix","w":0,"l":2,"t":1,"g":3},{"d":"2025-05-01","p":4,"s":"Manuel S.","k":"5c Humans","w":0,"l":2,"t":1,"g":3},{"d":"2025-05-07","p":1,"s":"Christian M.","k":"Mono R Aggro","w":3,"l":0,"t":0,"g":3},{"d":"2025-05-07","p":2,"s":"Daniel B.","k":"Mono B Demons","w":2,"l":1,"t":0,"g":3},{"d":"2025-05-07","p":3,"s":"Lukas K.","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2025-05-07","p":4,"s":"Steven","k":"Azorius Control","w":1,"l":2,"t":0,"g":3},{"d":"2025-05-07","p":5,"s":"Manuel S.","k":"Boros Nine Lives","w":1,"l":2,"t":0,"g":3},{"d":"2025-05-07","p":6,"s":"Stephan","k":"Dredgeless Dredge","w":0,"l":3,"t":0,"g":3},{"d":"2025-05-21","p":1,"s":"Manuel S.","k":"Selesnya Angels","w":3,"l":0,"t":0,"g":3},{"d":"2025-05-21","p":2,"s":"Andreas W.","k":"Rakdos Midrange","w":2,"l":1,"t":0,"g":3},{"d":"2025-05-21","p":3,"s":"Daniel M.","k":"Izzet Creativity","w":2,"l":1,"t":0,"g":3},{"d":"2025-05-21","p":4,"s":"Lukas K.","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2025-05-21","p":5,"s":"Leo L.","k":"Mono B Demons","w":1,"l":2,"t":0,"g":3},{"d":"2025-05-21","p":6,"s":"Stephan","k":"Dredgeless Dredge","w":1,"l":2,"t":0,"g":3},{"d":"2025-05-21","p":7,"s":"Daniel B.","k":"Mono B Demons","w":1,"l":2,"t":0,"g":3},{"d":"2025-05-28","p":1,"s":"Christian M.","k":"Mono R Aggro","w":3,"l":0,"t":0,"g":3},{"d":"2025-05-28","p":2,"s":"Manuel S.","k":"Selesnya Angels","w":2,"l":1,"t":0,"g":3},{"d":"2025-05-28","p":3,"s":"Leo L.","k":"Mono B Demons","w":2,"l":1,"t":0,"g":3},{"d":"2025-05-28","p":4,"s":"Daniel B.","k":"Azorius Control","w":1,"l":2,"t":0,"g":3},{"d":"2025-05-28","p":5,"s":"Andreas W.","k":"Rakdos Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2025-06-04","p":1,"s":"Stephan","k":"Dredgeless Dredge","w":3,"l":0,"t":0,"g":3},{"d":"2025-06-04","p":2,"s":"Philipp H.","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2025-06-04","p":3,"s":"Marc H.","k":"Rakdos Aggro","w":2,"l":1,"t":0,"g":3},{"d":"2025-06-04","p":4,"s":"Daniel B.","k":"Azorius Control","w":1,"l":2,"t":0,"g":3},{"d":"2025-06-04","p":5,"s":"Manuel S.","k":"Selesnya Angels","w":1,"l":2,"t":0,"g":3},{"d":"2025-06-11","p":1,"s":"Marc H.","k":"Rakdos Anvil","w":2,"l":0,"t":1,"g":3},{"d":"2025-06-11","p":2,"s":"Manuel S.","k":"Azorius Spirits","w":2,"l":1,"t":0,"g":3},{"d":"2025-06-11","p":3,"s":"Lukas K.","k":"Jund Sacrifice","w":1,"l":1,"t":1,"g":3},{"d":"2025-06-11","p":4,"s":"Leo L.","k":"Mono B Demons","w":1,"l":1,"t":1,"g":3},{"d":"2025-06-11","p":5,"s":"Christian M.","k":"Mono R Aggro","w":1,"l":1,"t":1,"g":3},{"d":"2025-06-11","p":6,"s":"Stephan","k":"Orzhov Clerics","w":0,"l":3,"t":0,"g":3},{"d":"2025-06-18","p":1,"s":"Daniel M.","k":"Rakdos Transmogrify","w":3,"l":0,"t":0,"g":3},{"d":"2025-06-18","p":2,"s":"Manuel S.","k":"Selesnya Angels","w":2,"l":1,"t":0,"g":3},{"d":"2025-06-18","p":3,"s":"Stephan","k":"Dredgeless Dredge","w":1,"l":2,"t":0,"g":3},{"d":"2025-06-18","p":4,"s":"Markus B.","k":"Orzhov Humans","w":1,"l":2,"t":0,"g":3},{"d":"2025-06-18","p":5,"s":"Daniel B.","k":"Rakdos Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2025-06-18","p":6,"s":"Christian M.","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2025-07-09","p":1,"s":"Christian M.","k":"Izzet Phoenix","w":2,"l":0,"t":1,"g":3},{"d":"2025-07-09","p":2,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":0,"t":2,"g":3},{"d":"2025-07-09","p":3,"s":"Lukas K.","k":"UR+ Creativity","w":1,"l":1,"t":1,"g":3},{"d":"2025-07-09","p":4,"s":"Manuel S.","k":"4c Zur Overlords","w":0,"l":3,"t":0,"g":3},{"d":"2025-07-16","p":1,"s":"Stephan","k":"Dredgeless Dredge","w":3,"l":0,"t":0,"g":3},{"d":"2025-07-16","p":2,"s":"Marc U.","k":"Azorius Control","w":1,"l":1,"t":1,"g":3},{"d":"2025-07-16","p":3,"s":"Daniel B.","k":"Rakdos Midrange","w":1,"l":1,"t":1,"g":3},{"d":"2025-07-16","p":4,"s":"Manuel S.","k":"Mono White Tokens","w":1,"l":1,"t":1,"g":3},{"d":"2025-07-16","p":5,"s":"Christian M.","k":"Rakdos Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2025-07-16","p":6,"s":"Lukas K.","k":"UR+ Creativity","w":0,"l":2,"t":1,"g":3},{"d":"2025-08-06","p":1,"s":"Lukas K.","k":"Golgari Ygra","w":3,"l":0,"t":0,"g":3},{"d":"2025-08-06","p":2,"s":"Stephan","k":"Jund Sacrifice","w":2,"l":1,"t":0,"g":3},{"d":"2025-08-06","p":3,"s":"Nico","k":"Boros Monument","w":1,"l":2,"t":0,"g":3},{"d":"2025-08-06","p":4,"s":"Philipp H.","k":"Izzet Phoenix","w":0,"l":3,"t":0,"g":3},{"d":"2025-08-13","p":1,"s":"Daniel B.","k":"Rakdos Midrange","w":2,"l":1,"t":0,"g":3},{"d":"2025-08-13","p":2,"s":"Manuel S.","k":"Orzhov Humans","w":2,"l":1,"t":0,"g":3},{"d":"2025-08-13","p":3,"s":"Stephan","k":"Orzhov Humans","w":1,"l":2,"t":0,"g":3},{"d":"2025-08-13","p":4,"s":"Christian M.","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2025-08-27","p":1,"s":"Christian M.","k":"Mono R Aggro","w":3,"l":0,"t":0,"g":3},{"d":"2025-08-27","p":2,"s":"Lukas K.","k":"Golgari Ygra","w":1,"l":2,"t":0,"g":3},{"d":"2025-08-27","p":3,"s":"Manuel S.","k":"Orzhov Humans","w":1,"l":2,"t":0,"g":3},{"d":"2025-08-27","p":4,"s":"Stephan","k":"Jund Sacrifice","w":1,"l":2,"t":0,"g":3},{"d":"2025-09-10","p":1,"s":"Lukas K.","k":"Mono B Midrange","w":2,"l":1,"t":0,"g":3},{"d":"2025-09-10","p":2,"s":"Marc U.","k":"Azorius Control","w":2,"l":1,"t":0,"g":3},{"d":"2025-09-10","p":3,"s":"Christian M.","k":"Mono R Aggro","w":2,"l":1,"t":0,"g":3},{"d":"2025-09-10","p":4,"s":"Stephan","k":"Dredgeless Dredge","w":0,"l":3,"t":0,"g":3},{"d":"2025-10-08","p":1,"s":"Andreas H.","k":"Rakdos Midrange","w":1,"l":0,"t":2,"g":3},{"d":"2025-10-08","p":2,"s":"Christian M.","k":"Rakdos Midrange","w":1,"l":0,"t":2,"g":3},{"d":"2025-10-08","p":3,"s":"Philipp H.","k":"Izzet Phoenix","w":0,"l":1,"t":2,"g":3},{"d":"2025-10-08","p":4,"s":"Manuel S.","k":"Boros Convoke","w":0,"l":1,"t":2,"g":3},{"d":"2025-10-22","p":1,"s":"Jonas F.","k":"Boros Pia","w":3,"l":0,"t":0,"g":3},{"d":"2025-10-22","p":2,"s":"Stephan","k":"Dredgeless Dredge","w":2,"l":1,"t":0,"g":3},{"d":"2025-10-22","p":3,"s":"Philipp H.","k":"Azorius Control","w":2,"l":1,"t":0,"g":3},{"d":"2025-10-22","p":4,"s":"Lukas K.","k":"Mono B Demons","w":1,"l":1,"t":1,"g":3},{"d":"2025-10-22","p":5,"s":"Manuel S.","k":"4/5c Incarnation","w":0,"l":2,"t":1,"g":3},{"d":"2025-11-05","p":1,"s":"Daniel M.","k":"Sultai Living End","w":3,"l":0,"t":0,"g":3},{"d":"2025-11-05","p":2,"s":"Jonas F.","k":"Boros Pia","w":2,"l":1,"t":0,"g":3},{"d":"2025-11-05","p":3,"s":"Lukas K.","k":"Dimir Midrange","w":2,"l":1,"t":0,"g":3},{"d":"2025-11-05","p":4,"s":"Andreas H.","k":"Orzhov Greasefang","w":2,"l":1,"t":0,"g":3},{"d":"2025-11-05","p":5,"s":"Manuel S.","k":"4/5c Incarnation","w":1,"l":2,"t":0,"g":3},{"d":"2025-11-05","p":6,"s":"Stephan","k":"Dredgeless Dredge","w":1,"l":2,"t":0,"g":3},{"d":"2025-11-05","p":7,"s":"Marc H.","k":"Rakdos Aggro","w":1,"l":2,"t":0,"g":3},{"d":"2025-11-05","p":8,"s":"Marc B.","k":"Rakdos Midrange","w":0,"l":3,"t":0,"g":3},{"d":"2025-11-12","p":1,"s":"Manuel S.","k":"Temur Battlecrier","w":3,"l":0,"t":0,"g":3},{"d":"2025-11-12","p":2,"s":"Lukas K.","k":"Dimir Midrange","w":2,"l":1,"t":0,"g":3},{"d":"2025-11-12","p":3,"s":"Stephan","k":"Jund Sacrifice","w":0,"l":2,"t":1,"g":3},{"d":"2025-11-12","p":4,"s":"Philipp H.","k":"Azorius Control","w":0,"l":2,"t":1,"g":3},{"d":"2025-11-26","p":1,"s":"Christian M.","k":"Gruul Prowess","w":3,"l":0,"t":0,"g":3},{"d":"2025-11-26","p":2,"s":"Lukas K.","k":"Rona Combo","w":1,"l":1,"t":1,"g":3},{"d":"2025-11-26","p":3,"s":"Stephan","k":"Dredgeless Dredge","w":1,"l":2,"t":0,"g":3},{"d":"2025-11-26","p":4,"s":"Daniel B.","k":"Rakdos Midrange","w":0,"l":2,"t":1,"g":3},{"d":"2025-12-03","p":1,"s":"Christian M.","k":"Gruul Prowess","w":2,"l":1,"t":0,"g":3},{"d":"2025-12-03","p":2,"s":"Manuel S.","k":"Temur Battlecrier","w":2,"l":1,"t":0,"g":3},{"d":"2025-12-03","p":3,"s":"Kai S.","k":"Mono W Humans","w":2,"l":1,"t":0,"g":3},{"d":"2025-12-03","p":4,"s":"Stephan","k":"Dredgeless Dredge","w":1,"l":2,"t":0,"g":3},{"d":"2025-12-03","p":5,"s":"Daniel B.","k":"Mono B Waste Not","w":1,"l":2,"t":0,"g":3},{"d":"2025-12-03","p":6,"s":"Philipp H.","k":"Azorius Control","w":1,"l":2,"t":0,"g":3},{"d":"2026-01-28","p":1,"s":"Christian M.","k":"Izzet Prowess","w":2,"l":1,"t":0,"g":3},{"d":"2026-01-28","p":2,"s":"Stephan","k":"Izzet Prowess","w":2,"l":1,"t":0,"g":3},{"d":"2026-01-28","p":3,"s":"Lukas K.","k":"Dimir Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2026-01-28","p":4,"s":"Daniel B.","k":"Orzhov Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2026-02-04","p":1,"s":"Manuel S.","k":"Abzan Greasefang","w":2,"l":1,"t":0,"g":3},{"d":"2026-02-04","p":2,"s":"Christian M.","k":"Izzet Phoenix","w":1,"l":1,"t":1,"g":3},{"d":"2026-02-04","p":3,"s":"Daniel B.","k":"Azorius Control","w":1,"l":1,"t":1,"g":3},{"d":"2026-02-04","p":4,"s":"Stephan","k":"Izzet Prowess","w":1,"l":2,"t":0,"g":3},{"d":"2026-02-11","p":1,"s":"Lukas K.","k":"Sultai Midrange","w":2,"l":1,"t":0,"g":3},{"d":"2026-02-11","p":2,"s":"Jonas F.","k":"Boros Pia","w":2,"l":1,"t":0,"g":3},{"d":"2026-02-11","p":3,"s":"Philipp H.","k":"Izzet Prowess","w":2,"l":1,"t":0,"g":3},{"d":"2026-02-11","p":4,"s":"Christian M.","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2026-02-11","p":5,"s":"Stephan","k":"Soulflayer","w":1,"l":2,"t":0,"g":3},{"d":"2026-02-25","p":1,"s":"Manuel S.","k":"Orzhov Greasefang","w":3,"l":0,"t":0,"g":3},{"d":"2026-02-25","p":2,"s":"Christian M.","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2026-02-25","p":3,"s":"Stephan","k":"Izzet Prowess","w":1,"l":2,"t":0,"g":3},{"d":"2026-02-25","p":4,"s":"Daniel B.","k":"Golgari Midrange","w":0,"l":3,"t":0,"g":3},{"d":"2026-03-04","p":1,"s":"Christian M.","k":"Izzet Phoenix","w":3,"l":0,"t":0,"g":3},{"d":"2026-03-04","p":2,"s":"Andreas H.","k":"Orzhov Greasefang","w":2,"l":1,"t":0,"g":3},{"d":"2026-03-04","p":3,"s":"Manuel S.","k":"Orzhov Greasefang","w":2,"l":1,"t":0,"g":3},{"d":"2026-03-04","p":4,"s":"Daniel B.","k":"Abzan Greasefang","w":1,"l":2,"t":0,"g":3},{"d":"2026-03-04","p":5,"s":"Stephan","k":"Dredgeless Dredge","w":1,"l":2,"t":0,"g":3},{"d":"2026-03-11","p":1,"s":"Christian M.","k":"Izzet Phoenix","w":3,"l":0,"t":0,"g":3},{"d":"2026-03-11","p":2,"s":"Manuel S.","k":"Orzhov Greasefang","w":2,"l":1,"t":0,"g":3},{"d":"2026-03-11","p":3,"s":"Andreas H.","k":"Orzhov Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2026-03-11","p":4,"s":"Daniel B.","k":"Golgari Midrange","w":0,"l":3,"t":0,"g":3},{"d":"2026-04-22","p":1,"s":"Stephan","k":"Dredgeless Dredge","w":3,"l":0,"t":0,"g":3},{"d":"2026-04-22","p":2,"s":"Daniel B.","k":"Golgari Midrange","w":2,"l":1,"t":0,"g":3},{"d":"2026-04-22","p":3,"s":"Jonas F.","k":"Boros Pia","w":2,"l":1,"t":0,"g":3},{"d":"2026-04-22","p":4,"s":"Lukas K.","k":"5c Elementals","w":1,"l":2,"t":0,"g":3},{"d":"2026-04-22","p":5,"s":"Philipp H.","k":"Izzet Phoenix","w":1,"l":2,"t":0,"g":3},{"d":"2026-04-29","p":1,"s":"Lukas K.","k":"Azorius Control","w":2,"l":1,"t":0,"g":3},{"d":"2026-04-29","p":2,"s":"Christian M.","k":"Izzet Phoenix","w":2,"l":1,"t":0,"g":3},{"d":"2026-04-29","p":3,"s":"Daniel B.","k":"Golgari Midrange","w":2,"l":1,"t":0,"g":3},{"d":"2026-04-29","p":4,"s":"Manuel S.","k":"Orzhov Greasefang","w":2,"l":1,"t":0,"g":3},{"d":"2026-04-29","p":5,"s":"Stephan","k":"Dredgeless Dredge","w":1,"l":2,"t":0,"g":3},{"d":"2026-05-13","p":1,"s":"Stephan","k":"Izzet Prowess","w":2,"l":1,"t":0,"g":3},{"d":"2026-05-13","p":2,"s":"Daniel B.","k":"Golgari Midrange","w":2,"l":1,"t":0,"g":3},{"d":"2026-05-13","p":3,"s":"Lukas K.","k":"Golgari Midrange","w":1,"l":2,"t":0,"g":3},{"d":"2026-05-13","p":4,"s":"Christian M.","k":"Izzet Prowess","w":1,"l":2,"t":0,"g":3},{"d":"2026-05-20","p":1,"s":"Christian M.","k":"Mono R Aggro","w":3,"l":0,"t":0,"g":3},{"d":"2026-05-20","p":2,"s":"Lukas K.","k":"Golgari Midrange","w":1,"l":1,"t":1,"g":3},{"d":"2026-05-20","p":3,"s":"Jonas F.","k":"Boros Pia","w":1,"l":1,"t":1,"g":3},{"d":"2026-05-20","p":4,"s":"Manuel S.","k":"Azorius Tempo","w":1,"l":2,"t":0,"g":3},{"d":"2026-05-20","p":5,"s":"Daniel B.","k":"Selesyna Company","w":1,"l":2,"t":0,"g":3},{"d":"2026-05-20","p":6,"s":"Stephan","k":"Dredgeless Dredge","w":1,"l":2,"t":0,"g":3},{"d":"2026-06-15","p":1,"s":"Daniel B.","k":"5c Bring to Light","w":3,"l":0,"t":0,"g":3},{"d":"2026-06-15","p":2,"s":"René M.","k":"Izzet Creativity","w":2,"l":1,"t":0,"g":3},{"d":"2026-06-15","p":3,"s":"Lukas K.","k":"Dimir Control","w":2,"l":1,"t":0,"g":3},{"d":"2026-06-15","p":4,"s":"Christian M.","k":"Mono R Aggro","w":1,"l":2,"t":0,"g":3},{"d":"2026-06-15","p":5,"s":"Manuel S.","k":"Orzhov Greasefang","w":1,"l":2,"t":0,"g":3},{"d":"2026-06-15","p":6,"s":"Stephan","k":"Dredgeless Dredge","w":0,"l":3,"t":0,"g":3},{"d":"2026-07-06","p":1,"s":"Daniel B.","k":"Golgari Midrange","w":3,"l":0,"t":0,"g":3},{"d":"2026-07-06","p":2,"s":"Christian M.","k":"Mono R Aggro","w":2,"l":1,"t":0,"g":3},{"d":"2026-07-06","p":3,"s":"Manuel S.","k":"Azorius Tempo","w":1,"l":2,"t":0,"g":3},{"d":"2026-07-06","p":4,"s":"Lukas K.","k":"Azorius Control","w":0,"l":3,"t":0,"g":3},{"d":"2026-07-20","p":1,"s":"Manuel S.","k":"Azorius Tempo","w":3,"l":0,"t":0,"g":3},{"d":"2026-07-20","p":2,"s":"Vincent D.","k":"Esper Tempo","w":2,"l":1,"t":0,"g":3},{"d":"2026-07-20","p":3,"s":"Stephan","k":"Selesnya Lifegain","w":2,"l":1,"t":0,"g":3},{"d":"2026-07-20","p":4,"s":"Daniel B.","k":"Orzhov Greasefang","w":1,"l":2,"t":0,"g":3},{"d":"2026-07-20","p":5,"s":"René M.","k":"Izzet Creativity","w":1,"l":2,"t":0,"g":3},{"d":"2026-07-20","p":6,"s":"Lukas K.","k":"Mono B Devotion","w":0,"l":3,"t":0,"g":3},{"d":"2026-07-27","p":1,"s":"Stephan","k":"Selesnya Lifegain","w":3,"l":0,"t":0,"g":3},{"d":"2026-07-27","p":2,"s":"Vincent D.","k":"Dimir Rouges","w":1,"l":1,"t":1,"g":3},{"d":"2026-07-27","p":3,"s":"Christian M.","k":"Izzet Phoenix","w":1,"l":1,"t":1,"g":3},{"d":"2026-07-27","p":4,"s":"René M.","k":"Izzet Creativity","w":1,"l":2,"t":0,"g":3}]</script>
+<script>
+(function(){
+"use strict";
+
+/* ============================ Daten ============================ */
+var RAW = JSON.parse(document.getElementById("data").textContent);
+
+var ALL_DATES = RAW.map(function(r){ return r.d; }).sort();
+var LAST = ALL_DATES[ALL_DATES.length-1];
+var FIRST = ALL_DATES[0];
+var YEARS = uniq(RAW.map(function(r){ return r.d.slice(0,4); })).sort();
+
+function uniq(a){ var s={},o=[],i; for(i=0;i<a.length;i++){ if(!s[a[i]]){ s[a[i]]=1; o.push(a[i]); } } return o; }
+
+function shiftDays(iso, n){
+  var p = iso.split("-");
+  var d = new Date(Date.UTC(+p[0], +p[1]-1, +p[2]));
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0,10);
+}
+function deDate(iso){
+  var p = iso.split("-");
+  return p[2]+"."+p[1]+"."+p[0];
+}
+var MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+var MONTHS_SHORT = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+function monthYear(iso){ var p=iso.split("-"); return MONTHS[+p[1]-1]+" "+p[0]; }
+function shortDate(iso){ var p=iso.split("-"); return p[2]+"."+p[1]+"."; }
+
+function nf(x, dec){
+  return x.toLocaleString("de-DE", {minimumFractionDigits:dec||0, maximumFractionDigits:dec||0});
+}
+function pct(x, dec){
+  if(dec===undefined) dec = 1;
+  return nf(x*100, dec)+" %";
+}
+
+/* ============================ Filter ============================ */
+var RANGES = [{id:"all", label:"Ewige Liste", kind:"all"}];
+for(var yi=YEARS.length-1; yi>=0; yi--) RANGES.push({id:"y"+YEARS[yi], label:YEARS[yi], kind:"year", year:YEARS[yi]});
+[90,60,30,14].forEach(function(d){ RANGES.push({id:"d"+d, label:d+" Tage", kind:"days", days:d}); });
+
+/* Standard: laufendes Kalenderjahr. Liegen dafür noch keine Turniere vor
+   (z. B. im Januar), fällt die Auswahl auf das jüngste Jahr mit Daten zurück. */
+var DEFAULT_ID = (function(){
+  var y = String(new Date().getFullYear());
+  if(YEARS.indexOf(y) >= 0) return "y" + y;
+  if(YEARS.length) return "y" + YEARS[YEARS.length-1];
+  return "all";
+})();
+var current = DEFAULT_ID;
+
+function sliceFor(id){
+  var r = null, i;
+  for(i=0;i<RANGES.length;i++) if(RANGES[i].id===id) r = RANGES[i];
+  if(!r || r.kind==="all") return {recs:RAW.slice(), label:"seit "+monthYear(FIRST), from:FIRST, to:LAST};
+  if(r.kind==="year"){
+    return {
+      recs: RAW.filter(function(x){ return x.d.slice(0,4)===r.year; }),
+      label:"Jahr "+r.year, from:r.year+"-01-01", to:r.year+"-12-31", year:r.year
+    };
+  }
+  var cut = shiftDays(LAST, -r.days);
+  return {
+    recs: RAW.filter(function(x){ return x.d > cut; }),
+    label:"letzte "+r.days+" Tage", from:cut, to:LAST, days:r.days
+  };
+}
+
+/* ============================ Aggregation ============================ */
+function aggDecks(recs){
+  var m = {}, tot = 0, i, r, a;
+  for(i=0;i<recs.length;i++){
+    r = recs[i]; tot += r.g;
+    a = m[r.k] || (m[r.k] = {name:r.k, g:0, w:0, l:0, t:0, n:0, best:99});
+    a.g += r.g; a.w += r.w; a.l += r.l; a.t += r.t; a.n += 1;
+    if(r.p < a.best) a.best = r.p;
+  }
+  var out = [], k;
+  for(k in m) if(m.hasOwnProperty(k)){
+    a = m[k];
+    a.share = tot ? a.g/tot : 0;
+    a.wr = a.g ? a.w/a.g : 0;          /* Deck-Definition: U zaehlt als Niederlage */
+    out.push(a);
+  }
+  out.sort(function(x,y){ return y.g - x.g || (x.name<y.name?-1:1); });
+  return {list:out, totalGames:tot};
+}
+
+function aggPlayers(recs){
+  var m = {}, entries = recs.length, i, r, a;
+  for(i=0;i<recs.length;i++){
+    r = recs[i];
+    a = m[r.s] || (m[r.s] = {name:r.s, n:0, g:0, w:0, l:0, t:0, wins:0, top3:0, best:99});
+    a.n += 1; a.g += r.g; a.w += r.w; a.l += r.l; a.t += r.t;
+    if(r.p === 1) a.wins += 1;
+    if(r.p <= 3) a.top3 += 1;
+    if(r.p < a.best) a.best = r.p;
+  }
+  var out = [], k;
+  for(k in m) if(m.hasOwnProperty(k)){
+    a = m[k];
+    a.pts = 3*a.w + a.t;
+    a.wr = a.g ? (a.w + 0.5*a.t)/a.g : 0;   /* Spieler-Definition: U zaehlt halb */
+    a.pps = a.g ? a.pts/a.g : 0;
+    a.share = entries ? a.n/entries : 0;
+    out.push(a);
+  }
+  out.sort(function(x,y){ return y.pts - x.pts || y.wr - x.wr || (x.name<y.name?-1:1); });
+  return out;
+}
+
+/* Acht geprüfte Kategorienfarben. Mehr gibt es nicht: eine neunte Farbe wäre
+   unter Farbfehlsichtigkeit nicht mehr von einer der acht zu trennen. */
+var SERIES_VARS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
+function seriesColor(i){ return "var("+SERIES_VARS[i % SERIES_VARS.length]+")"; }
+
+/* Gesamtrang je Deck. Die Serienfarben werden nach diesem Rang vergeben, nicht
+   nach dem Rang im gewählten Zeitraum — so behält ein Deck seine Farbe, wenn es
+   in mehreren Zeiträumen auftaucht. */
+var ALLTIME_RANK = (function(){
+  var m = {}, list = aggDecks(RAW).list, i;
+  for(i=0;i<list.length;i++) m[list[i].name] = i;
+  return m;
+})();
+
+var TREND_N = 5;
+var trend = {names:[], rows:[], unit:"Jahr"};
+
+/* Die Achse folgt dem gewählten Zeitraum:
+   Jahr  -> die zwölf Monate dieses Jahres
+   Tage  -> die einzelnen Turniertage im Fenster
+   sonst -> die Jahre                                                        */
+function bucketsFor(sl){
+  var i, mm;
+  if(sl.year){
+    var months = [];
+    for(i=1;i<=12;i++){
+      mm = (i<10 ? "0" : "") + i;
+      months.push({key:sl.year+"-"+mm, label:MONTHS_SHORT[i-1], full:MONTHS[i-1]+" "+sl.year});
+    }
+    return {list:months, unit:"Monat",
+            pick:function(r){ return r.d.slice(0,7); }};
+  }
+  if(sl.days){
+    var dates = uniq(sl.recs.map(function(r){ return r.d; })).sort();
+    return {list:dates.map(function(d){
+              return {key:d, label:shortDate(d), full:"Turnier am "+deDate(d)};
+            }), unit:"Turniertag",
+            pick:function(r){ return r.d; }};
+  }
+  return {list:YEARS.map(function(y){ return {key:y, label:y, full:"Jahr "+y}; }),
+          unit:"Jahr",
+          pick:function(r){ return r.d.slice(0,4); }};
+}
+
+function buildTrend(names, sl){
+  var b = bucketsFor(sl);
+  var agg = {};
+  sl.recs.forEach(function(r){
+    var k = b.pick(r);
+    var a = agg[k] || (agg[k] = {total:0, byDeck:{}});
+    a.total += r.g;
+    a.byDeck[r.k] = (a.byDeck[r.k] || 0) + r.g;
+  });
+  var rows = b.list.map(function(it){
+    var a = agg[it.key];
+    return {
+      key: it.key, label: it.label, full: it.full,
+      total: a ? a.total : 0,
+      hasData: !!(a && a.total),
+      vals: names.map(function(n){ return (a && a.total) ? (a.byDeck[n] || 0)/a.total : 0; }),
+      games: names.map(function(n){ return a ? (a.byDeck[n] || 0) : 0; })
+    };
+  });
+  return {rows:rows, unit:b.unit};
+}
+
+/* ============================ Tooltip ============================ */
+var tipEl = document.getElementById("tip");
+function tipShow(x, y, title, rows, sub){
+  while(tipEl.firstChild) tipEl.removeChild(tipEl.firstChild);
+  var h = document.createElement("div");
+  h.className = "tt"; h.textContent = title;
+  tipEl.appendChild(h);
+  rows.forEach(function(r){
+    var d = document.createElement("div"); d.className = "tr";
+    if(r.color){
+      var k = document.createElement("span"); k.className = "key";
+      k.style.background = r.color; k.style.height = "2px";
+      d.appendChild(k);
+    }
+    var n = document.createElement("span"); n.className = "tn"; n.textContent = r.name;
+    var v = document.createElement("span"); v.className = "tv"; v.textContent = r.value;
+    d.appendChild(n); d.appendChild(v);
+    tipEl.appendChild(d);
+  });
+  if(sub){
+    var s = document.createElement("div"); s.className = "tsub"; s.textContent = sub;
+    tipEl.appendChild(s);
+  }
+  tipEl.classList.add("on");
+  var w = tipEl.offsetWidth, hh = tipEl.offsetHeight;
+  var left = x + 14, top = y - hh - 12;
+  if(left + w > window.innerWidth - 8) left = x - w - 14;
+  if(left < 8) left = 8;
+  if(top < 8) top = y + 18;
+  tipEl.style.left = left+"px";
+  tipEl.style.top = top+"px";
+}
+function tipHide(){ tipEl.classList.remove("on"); }
+
+function bindTip(el, build){
+  function on(ev){
+    var t = (ev.touches && ev.touches[0]) || ev;
+    var d = build();
+    tipShow(t.clientX, t.clientY, d.title, d.rows, d.sub);
+  }
+  el.addEventListener("pointerenter", on);
+  el.addEventListener("pointermove", on);
+  el.addEventListener("pointerleave", tipHide);
+  el.addEventListener("focus", function(){
+    var r = el.getBoundingClientRect(), d = build();
+    tipShow(r.left + r.width/2, r.top, d.title, d.rows, d.sub);
+  });
+  el.addEventListener("blur", tipHide);
+  el.tabIndex = 0;
+}
+
+/* ============================ Balken-Charts ============================ */
+var TOPN = 12;
+
+function renderShare(decks, totalGames){
+  var host = document.getElementById("chart-share");
+  host.textContent = "";
+  var top = decks.slice(0, TOPN);
+  if(!top.length){ host.innerHTML = '<div class="empty">Keine Daten im Zeitraum.</div>'; return top; }
+
+  var rest = decks.slice(TOPN);
+  var restG = rest.reduce(function(s,d){ return s + d.g; }, 0);
+  var max = top[0].share;
+  var items = top.map(function(d){ return {name:d.name, share:d.share, d:d, other:false}; });
+  if(rest.length) items.push({
+    name:"Andere ("+rest.length+")",
+    share: totalGames ? restG/totalGames : 0,
+    other:true, count:rest.length, games:restG
+  });
+
+  items.forEach(function(it){
+    var row = document.createElement("div"); row.className = "brow";
+    var nm = document.createElement("div"); nm.className = "bname";
+    nm.textContent = it.name; nm.title = it.name;
+    var tr = document.createElement("div"); tr.className = "btrack";
+    var fill = document.createElement("div");
+    fill.className = "bfill" + (it.other ? " other" : "");
+    var w = max > 0 ? Math.max(it.share/max*100, it.share>0 ? 1.5 : 0) : 0;
+    fill.style.width = "calc("+w+"% - 0px)";
+    fill.style.maxWidth = "calc(100% - 46px)";
+    var val = document.createElement("div"); val.className = "bval";
+    val.textContent = pct(it.share, 1);
+    val.style.left = "calc(min("+w+"%, 100% - 46px) + 8px)";
+    tr.appendChild(fill); tr.appendChild(val);
+    row.appendChild(nm); row.appendChild(tr);
+
+    bindTip(row, function(){
+      if(it.other){
+        return {title:it.name, rows:[
+          {name:"Anteil", value:pct(it.share,1)},
+          {name:"Spiele", value:nf(it.games)}
+        ], sub:it.count+" weitere Decks zusammengefasst"};
+      }
+      var d = it.d;
+      return {title:d.name, rows:[
+        {name:"Anteil der Meta", value:pct(d.share,1)},
+        {name:"Spiele", value:nf(d.g)},
+        {name:"Siege / Nied. / Unent.", value:d.w+" / "+d.l+" / "+d.t},
+        {name:"Siegquote", value:pct(d.wr,1)},
+        {name:"Einsätze", value:nf(d.n)}
+      ], sub: d.best<99 ? "Beste Platzierung: "+d.best+"." : ""};
+    });
+    host.appendChild(row);
+  });
+  return top;
+}
+
+function renderWinrate(top){
+  var host = document.getElementById("chart-wr");
+  var tickHost = document.getElementById("wr-ticks");
+  host.textContent = ""; tickHost.textContent = "";
+  if(!top.length){ host.innerHTML = '<div class="empty">Keine Daten im Zeitraum.</div>'; return; }
+
+  var SPAN = 0.5; /* +/- 50 Prozentpunkte um die Mitte */
+  var maxDev = 0;
+  top.forEach(function(d){ maxDev = Math.max(maxDev, Math.abs(d.wr - 0.5)); });
+  var span = Math.max(0.1, Math.min(SPAN, Math.ceil((maxDev+0.02)*20)/20));
+
+  top.forEach(function(d){
+    var dev = d.wr - 0.5;
+    var row = document.createElement("div"); row.className = "brow wr";
+    var nm = document.createElement("div"); nm.className = "bname";
+    nm.textContent = d.name; nm.title = d.name;
+    var tr = document.createElement("div"); tr.className = "dtrack";
+    var mid = document.createElement("div"); mid.className = "dmid"; mid.style.left = "50%";
+    var fill = document.createElement("div");
+    fill.className = "dfill " + (dev >= 0 ? "pos" : "neg");
+    var half = Math.min(Math.abs(dev)/span, 1) * 50;
+    if(dev >= 0){ fill.style.left = "50%"; fill.style.width = half+"%"; }
+    else { fill.style.right = "50%"; fill.style.width = half+"%"; }
+    var val = document.createElement("div"); val.className = "dval";
+    val.textContent = pct(d.wr, 1);
+    tr.appendChild(mid); tr.appendChild(fill);
+    row.appendChild(nm); row.appendChild(tr); row.appendChild(val);
+
+    bindTip(row, function(){
+      return {title:d.name, rows:[
+        {name:"Siegquote", value:pct(d.wr,1)},
+        {name:"gegenüber 50 %", value:(dev>=0?"+":"−")+nf(Math.abs(dev)*100,1)+" pp"},
+        {name:"Siege / Spiele", value:d.w+" / "+d.g},
+        {name:"Unentschieden", value:nf(d.t)}
+      ], sub: d.g < 20 ? "Nur "+d.g+" Spiele — wenig belastbar." : ""};
+    });
+    host.appendChild(row);
+  });
+
+  [-span, 0, span].forEach(function(v, i){
+    var s = document.createElement("span");
+    s.textContent = nf((0.5+v)*100, 0)+" %";
+    s.style.left = (50 + v/span*50)+"%";
+    if(i === 0) s.className = "edge-l";
+    if(i === 2) s.className = "edge-r";
+    tickHost.appendChild(s);
+  });
+}
+
+/* ============================ Kuchendiagramm ============================ */
+/* Der Ring enthält jedes Deck des Zeitraums als eigenes Segment. Farbig sind
+   die acht größten — mehr geprüfte Kategorienfarben gibt es nicht. Der Rest
+   wechselt zwischen zwei Grautönen, damit benachbarte Segmente trotz gleicher
+   Rolle unterscheidbar bleiben. Die Legende nennt die acht farbigen mit Wert
+   und fasst den Rest in einer Zeile zusammen; jedes Segment ist einzeln
+   antippbar, die vollständige Liste steht in der Deck-Tabelle darunter. */
+var PIE_COLORED = 8;
+var shareMode = "bars";
+
+function pieSegments(decks){
+  return decks.map(function(d, i){
+    var tail = i >= PIE_COLORED;
+    return {
+      name: d.name, share: d.share, games: d.g, deck: d, tail: tail,
+      color: tail ? (i % 2 ? "var(--n2)" : "var(--n1)") : seriesColor(i)
+    };
+  });
+}
+
+function polar(cx, cy, r, a){
+  return [cx + r*Math.sin(a), cy - r*Math.cos(a)];
+}
+
+function donutPath(cx, cy, ri, ro, a0, a1){
+  var p1 = polar(cx, cy, ro, a0), p2 = polar(cx, cy, ro, a1);
+  var p3 = polar(cx, cy, ri, a1), p4 = polar(cx, cy, ri, a0);
+  var large = (a1 - a0) > Math.PI ? 1 : 0;
+  return "M" + p1[0].toFixed(2) + " " + p1[1].toFixed(2) +
+         "A" + ro + " " + ro + " 0 " + large + " 1 " + p2[0].toFixed(2) + " " + p2[1].toFixed(2) +
+         "L" + p3[0].toFixed(2) + " " + p3[1].toFixed(2) +
+         "A" + ri + " " + ri + " 0 " + large + " 0 " + p4[0].toFixed(2) + " " + p4[1].toFixed(2) + "Z";
+}
+
+function renderPie(decks, totalGames){
+  var svg = document.getElementById("pie-svg");
+  var box = document.getElementById("pie-box");
+  var legend = document.getElementById("pie-legend");
+  svg.textContent = ""; legend.textContent = "";
+
+  var segs = pieSegments(decks);
+  if(!segs.length || !totalGames){
+    legend.innerHTML = '<div class="empty">Keine Daten im Zeitraum.</div>';
+    svg.setAttribute("viewBox", "0 0 10 10");
+    return;
+  }
+
+  var W = Math.max(220, box.clientWidth || 380);
+  var H = Math.max(210, Math.min(300, Math.round(W * 0.78)));
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.setAttribute("width", W); svg.setAttribute("height", H);
+
+  var cx = W/2, cy = H/2;
+  var ring = W < 300 ? 26 : 32;
+  var ro = Math.min(W, H)/2 - 8;
+  var ri = Math.max(12, ro - ring);
+  var rmid = (ro + ri)/2;
+  var GAP = 2;                                  /* Flächenlücke in der Surface-Farbe */
+  var dAmax = (GAP/2) / rmid;                   /* halbe Lücke als Winkel */
+
+  var nodes = [];
+  if(segs.length === 1){
+    var full = svgEl("circle", {cx:cx, cy:cy, r:rmid, "class":"pieseg",
+      stroke:segs[0].color, "stroke-width":(ro-ri)});
+    svg.appendChild(full);
+    nodes.push(full);
+  } else {
+    var acc = 0;
+    segs.forEach(function(s){
+      var a0 = acc * 2*Math.PI, a1 = (acc + s.share) * 2*Math.PI;
+      acc += s.share;
+      var full = a1 - a0;
+      if(full <= 0){ nodes.push(null); return; }
+      /* Die Lücke kostet Winkel und würde kleine Segmente kleiner erscheinen
+         lassen als sie sind. Sie kommt deshalb nur, wenn sie unter 15 % des
+         Segments bleibt. Schmale Segmente stehen bündig aneinander und werden
+         über die zwei wechselnden Grautöne unterschieden. */
+      var dA = (full > (2*dAmax)/0.15) ? dAmax : 0;
+      var p = svgEl("path", {d:donutPath(cx, cy, ri, ro, a0 + dA, a1 - dA),
+        fill:s.color, stroke:"none", "class":"pieseg-fill"});
+      p.style.cursor = "default";
+      svg.appendChild(p);
+      nodes.push(p);
+    });
+  }
+
+  /* Mitte: Bezugsgröße der Anteile */
+  var v = svgEl("text", {x:cx, y:cy - 1, "class":"piectr-v"});
+  v.textContent = nf(totalGames);
+  var l = svgEl("text", {x:cx, y:cy + 15, "class":"piectr-l"});
+  l.textContent = totalGames === 1 ? "Spiel" : "Spiele";
+  svg.appendChild(v); svg.appendChild(l);
+
+  /* Tooltip für ein einzelnes Deck-Segment */
+  function deckTip(d){
+    return {title:d.name, rows:[
+      {name:"Anteil der Meta", value:pct(d.share,1)},
+      {name:"Spiele", value:nf(d.g)},
+      {name:"Siege / Nied. / Unent.", value:d.w+" / "+d.l+" / "+d.t},
+      {name:"Siegquote", value:pct(d.wr,1)}
+    ], sub: d.best < 99 ? "Beste Platzierung: "+d.best+"." : ""};
+  }
+
+  /* Jedes Segment ist einzeln antippbar, auch die grauen. */
+  segs.forEach(function(s, i){
+    var n = nodes[i];
+    if(!n) return;
+    bindTip(n, function(){ return deckTip(s.deck); });
+    n.addEventListener("pointerenter", function(){ n.setAttribute("opacity", "0.72"); });
+    n.addEventListener("pointerleave", function(){ n.setAttribute("opacity", "1"); });
+  });
+
+  /* Legende: die acht farbigen einzeln, der graue Rest in einer Zeile.
+     Name und Prozentwert stehen als Text da, damit der Wert nie allein an
+     der Farbe hängt. */
+  var items = [];
+  segs.forEach(function(s, i){
+    if(!s.tail) items.push({name:s.name, share:s.share, color:s.color, idx:[i], deck:s.deck});
+  });
+  var tailIdx = [], tailShare = 0, tailGames = 0;
+  segs.forEach(function(s, i){
+    if(s.tail){ tailIdx.push(i); tailShare += s.share; tailGames += s.games; }
+  });
+  if(tailIdx.length){
+    items.push({
+      name: tailIdx.length + " weitere Decks", share: tailShare, games: tailGames,
+      color: "linear-gradient(90deg, var(--n1) 50%, var(--n2) 50%)",
+      idx: tailIdx, group: true
+    });
+  }
+
+  items.forEach(function(it){
+    var row = document.createElement("span"); row.className = "lg";
+    var k = document.createElement("span"); k.className = "keybox";
+    k.style.background = it.color;
+    var nm = document.createElement("span"); nm.className = "lgname";
+    nm.textContent = it.name; nm.title = it.name;
+    var val = document.createElement("span"); val.className = "lgval";
+    val.textContent = pct(it.share, 1);
+    row.appendChild(k); row.appendChild(nm); row.appendChild(val);
+
+    function build(){
+      if(it.group){
+        return {title:it.name, rows:[
+          {name:"Anteil der Meta", value:pct(it.share,1)},
+          {name:"Spiele", value:nf(it.games)}
+        ], sub:"Jedes einzeln im Ring; Werte in der Tabelle unten."};
+      }
+      return deckTip(it.deck);
+    }
+    function lift(on){
+      it.idx.forEach(function(i){
+        var n = nodes[i];
+        if(n) n.setAttribute("opacity", on ? "0.72" : "1");
+      });
+      row.classList.toggle("on", on);
+    }
+    bindTip(row, build);
+    row.addEventListener("pointerenter", function(){ lift(true); });
+    row.addEventListener("pointerleave", function(){ lift(false); });
+    row.addEventListener("focus", function(){ lift(true); });
+    row.addEventListener("blur", function(){ lift(false); });
+    legend.appendChild(row);
+  });
+}
+
+function applyShareMode(){
+  var bars = document.getElementById("chart-share");
+  var pie = document.getElementById("chart-pie");
+  var btn = document.getElementById("share-toggle");
+  var isPie = shareMode === "pie";
+  bars.classList.toggle("hidden", isPie);
+  pie.classList.toggle("hidden", !isPie);
+  btn.setAttribute("aria-pressed", String(isPie));
+  btn.textContent = isPie ? "Balken" : "Kuchendiagramm";
+  document.getElementById("share-hint").textContent = isPie
+    ? "Alle Decks des Zeitraums, nach Anteil sortiert. Die acht größten farbig, "
+      + "die übrigen in zwei Grautönen — jedes Segment einzeln antippbar."
+    : "Gespielte Spiele je Deck, in Prozent aller Spiele im Zeitraum.";
+}
+
+/* ============================ Tabellen ============================ */
+function makeTable(cfg){
+  var thead = cfg.table.querySelector("thead");
+  var tbody = cfg.table.querySelector("tbody");
+  var state = {key:cfg.defaultKey, dir:cfg.defaultDir || -1, q:""};
+
+  function header(){
+    thead.textContent = "";
+    var tr = document.createElement("tr");
+    if(cfg.rankCol){
+      var rt = document.createElement("th");
+      rt.textContent = "#"; rt.className = "rank"; rt.style.cursor = "default";
+      tr.appendChild(rt);
+    }
+    cfg.cols.forEach(function(c){
+      var th = document.createElement("th");
+      th.textContent = c.label;
+      if(c.title) th.title = c.title;
+      var ar = document.createElement("span"); ar.className = "ar";
+      if(state.key === c.key){
+        th.setAttribute("aria-sort", state.dir < 0 ? "descending" : "ascending");
+        ar.textContent = state.dir < 0 ? "▼" : "▲";
+      } else {
+        ar.textContent = "▼";
+      }
+      th.appendChild(ar);
+      th.addEventListener("click", function(){
+        if(state.key === c.key) state.dir = -state.dir;
+        else { state.key = c.key; state.dir = c.asc ? 1 : -1; }
+        draw();
+      });
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+  }
+
+  function draw(){
+    header();
+    tbody.textContent = "";
+    var rows = cfg.rows().filter(function(r){
+      return !state.q || cfg.match(r, state.q);
+    });
+    var col = null;
+    cfg.cols.forEach(function(c){ if(c.key === state.key) col = c; });
+    if(col){
+      rows.sort(function(a,b){
+        var x = col.sort ? col.sort(a) : a[col.key];
+        var y = col.sort ? col.sort(b) : b[col.key];
+        if(typeof x === "string") return state.dir * (x < y ? -1 : x > y ? 1 : 0);
+        return state.dir * ((x||0) - (y||0)) || (a.name < b.name ? -1 : 1);
+      });
+    }
+    cfg.empty.classList.toggle("hidden", rows.length > 0);
+    rows.forEach(function(r, i){
+      var tr = document.createElement("tr");
+      if(cfg.rankCol){
+        var rd = document.createElement("td");
+        rd.className = "rank"; rd.textContent = String(i+1);
+        tr.appendChild(rd);
+      }
+      cfg.cols.forEach(function(c){
+        var td = document.createElement("td");
+        c.cell(td, r, i);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  if(cfg.search){
+    cfg.search.addEventListener("input", function(){
+      state.q = cfg.search.value.trim().toLowerCase();
+      draw();
+    });
+  }
+  return {draw:draw, reset:function(){ state.key = cfg.defaultKey; state.dir = cfg.defaultDir || -1; }};
+}
+
+function txt(td, s){ td.textContent = s; }
+
+var deckData = [], playerData = [], tourData = [], shareTotal = 0;
+
+var deckTable = makeTable({
+  table: document.getElementById("deck-table"),
+  empty: document.getElementById("deck-empty"),
+  search: document.getElementById("deck-search"),
+  rankCol: true,
+  defaultKey: "g", defaultDir: -1,
+  rows: function(){ return deckData.slice(); },
+  match: function(r, q){ return r.name.toLowerCase().indexOf(q) >= 0; },
+  cols: [
+    {key:"name", label:"Deck", asc:true, cell:function(td,r){
+      var dot = document.createElement("span"); dot.className = "dot";
+      dot.style.background = "var(--s1)"; dot.style.opacity = String(Math.max(.22, Math.min(1, r.share*7)));
+      td.appendChild(dot);
+      td.appendChild(document.createTextNode(r.name));
+    }},
+    {key:"share", label:"Anteil", cell:function(td,r){ txt(td, pct(r.share,2)); }},
+    {key:"g", label:"Spiele", cell:function(td,r){ txt(td, nf(r.g)); }},
+    {key:"w", label:"S", cell:function(td,r){ txt(td, nf(r.w)); }},
+    {key:"l", label:"N", cell:function(td,r){ txt(td, nf(r.l)); }},
+    {key:"t", label:"U", cell:function(td,r){ txt(td, nf(r.t)); }},
+    {key:"wr", label:"Siegquote", title:"Siege ÷ Spiele", cell:function(td,r){
+      txt(td, pct(r.wr,1));
+      if(r.wr >= 0.5) td.style.color = "var(--good)";
+    }},
+    {key:"n", label:"Einsätze", title:"Wie oft das Deck gespielt wurde", cell:function(td,r){ txt(td, nf(r.n)); }},
+    {key:"best", label:"Bestes", title:"Beste erreichte Platzierung", cell:function(td,r){
+      txt(td, r.best < 99 ? r.best + "." : "–");
+    }}
+  ]
+});
+
+var playerTable = makeTable({
+  table: document.getElementById("player-table"),
+  empty: document.getElementById("player-empty"),
+  search: document.getElementById("player-search"),
+  rankCol: true,
+  defaultKey: "pts", defaultDir: -1,
+  rows: function(){ return playerData.slice(); },
+  match: function(r, q){ return r.name.toLowerCase().indexOf(q) >= 0; },
+  cols: [
+    {key:"name", label:"Spieler", asc:true, cell:function(td,r){
+      td.appendChild(document.createTextNode(r.name));
+      if(r.wins > 0){
+        var m = document.createElement("span");
+        m.className = "medal"; m.style.color = "var(--muted)";
+        m.textContent = "  ★ " + r.wins;
+        m.title = r.wins + "× Turniersieg";
+        td.appendChild(m);
+      }
+    }},
+    {key:"pts", label:"Punkte", title:"3 · Siege + 1 · Unentschieden", cell:function(td,r){ txt(td, nf(r.pts)); }},
+    {key:"pps", label:"Pkt./Spiel", cell:function(td,r){ txt(td, nf(r.pps,2)); }},
+    {key:"wr", label:"Winrate", title:"(Siege + ½ · Unentschieden) ÷ Spiele", cell:function(td,r){
+      txt(td, pct(r.wr,1));
+      if(r.wr >= 0.5) td.style.color = "var(--good)";
+    }},
+    {key:"n", label:"Teilnahmen", cell:function(td,r){ txt(td, nf(r.n)); }},
+    {key:"g", label:"Spiele", cell:function(td,r){ txt(td, nf(r.g)); }},
+    {key:"wins", label:"Siege", title:"Turniersiege (1. Platz)", cell:function(td,r){ txt(td, nf(r.wins)); }},
+    {key:"top3", label:"Top 3", cell:function(td,r){ txt(td, nf(r.top3)); }}
+  ]
+});
+
+var tourTable = makeTable({
+  table: document.getElementById("tour-table"),
+  empty: document.getElementById("tour-empty"),
+  search: document.getElementById("tour-search"),
+  rankCol: false,
+  defaultKey: "sortkey", defaultDir: -1,
+  rows: function(){ return tourData.slice(); },
+  match: function(r, q){
+    return r.s.toLowerCase().indexOf(q) >= 0 || r.k.toLowerCase().indexOf(q) >= 0;
+  },
+  cols: [
+    {key:"sortkey", label:"Datum", cell:function(td,r){ txt(td, deDate(r.d)); },
+     sort:function(r){ return r.d + "-" + String(100 - r.p); }},
+    {key:"p", label:"Platz", asc:true, cell:function(td,r){
+      txt(td, r.p + ".");
+      if(r.p === 1) td.style.color = "var(--ink)";
+    }},
+    {key:"s", label:"Spieler", asc:true, cell:function(td,r){ txt(td, r.s); }},
+    {key:"k", label:"Deck", asc:true, cell:function(td,r){ txt(td, r.k); }},
+    {key:"w", label:"S", cell:function(td,r){ txt(td, String(r.w)); }},
+    {key:"l", label:"N", cell:function(td,r){ txt(td, String(r.l)); }},
+    {key:"t", label:"U", cell:function(td,r){ txt(td, String(r.t)); }}
+  ]
+});
+
+/* ============================ Langzeit-Liniendiagramm ============================ */
+var SVG_NS = "http://www.w3.org/2000/svg";
+function svgEl(n, attrs){
+  var e = document.createElementNS(SVG_NS, n), k;
+  if(attrs) for(k in attrs) if(attrs.hasOwnProperty(k)) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+function drawTrend(){
+  var TREND = trend.rows, TOP5 = trend.names;
+  var svg = document.getElementById("trend-svg");
+  var box = document.getElementById("trend-box");
+  svg.textContent = "";
+  if(!TREND.length || !TOP5.length) return;
+  var W = Math.max(300, box.clientWidth || 640);
+  var H = W < 520 ? 260 : 320;
+  /* Schmaler Schirm: keine Endlabels (r < 40), aber genug Rand, damit die
+     halbe Breite des letzten Achsenlabels noch in die Fläche passt. */
+  var M = {t:14, r: W < 520 ? 24 : 64, b:30, l:42};
+  svg.setAttribute("viewBox", "0 0 "+W+" "+H);
+  svg.setAttribute("width", W); svg.setAttribute("height", H);
+
+  var iw = W - M.l - M.r, ih = H - M.t - M.b;
+  var maxV = 0;
+  TREND.forEach(function(row){ row.vals.forEach(function(v){ if(v > maxV) maxV = v; }); });
+  var yMax = Math.max(0.05, Math.ceil(maxV / 0.05) * 0.05);
+
+  /* Bei sehr wenigen Kategorien (einzelne Turniertage) fallen Anteile häufig
+     zusammen und Linien lägen exakt übereinander. Die Serien werden dann
+     seitlich versetzt gezeichnet. Die X-Achse ist hier kategorial, der Versatz
+     verfälscht also keinen Wert — der Y-Wert bleibt exakt. */
+  var dodge = (TREND.length <= 4 && TOP5.length > 1)
+    ? Math.min(7, iw/(TREND.length > 1 ? TREND.length-1 : 1) * 0.05) : 0;
+  var maxOff = dodge * (TOP5.length - 1) / 2;
+  function off(si){ return dodge ? (si - (TOP5.length-1)/2) * dodge : 0; }
+
+  function X(i){
+    var l = M.l + maxOff, w = iw - 2*maxOff;
+    return l + (TREND.length === 1 ? w/2 : i/(TREND.length-1)*w);
+  }
+  function Y(v){ return M.t + ih - (v/yMax)*ih; }
+
+  /* Gitter + Y-Achse */
+  var steps = 5, si;
+  for(si=0; si<=steps; si++){
+    var v = yMax*si/steps;
+    var y = Y(v);
+    svg.appendChild(svgEl("line", {x1:M.l, x2:M.l+iw, y1:y, y2:y, "class":"gridline"}));
+    var tl = svgEl("text", {x:M.l-8, y:y+4, "class":"tick", "text-anchor":"end"});
+    tl.textContent = nf(v*100, 0)+" %";
+    svg.appendChild(tl);
+  }
+  svg.appendChild(svgEl("line", {x1:M.l, x2:M.l+iw, y1:M.t+ih, y2:M.t+ih, "class":"axisline"}));
+
+  /* X-Achse */
+  /* X-Beschriftung ausdünnen, wenn zu viele Kategorien für die Breite da sind.
+     Die Auswahl wird am Ende der Achse verankert, damit die letzte Kategorie
+     immer beschriftet ist und der Abstand gleichmäßig bleibt. */
+  var gap = TREND.length > 1 ? iw/(TREND.length-1) : iw;
+  var need = trend.unit === "Turniertag" ? 42 : 30;
+  var every = Math.max(1, Math.ceil(need/gap));
+  var shown = [], ti;
+  for(ti = TREND.length-1; ti >= 0; ti -= every) shown.push(ti);
+  shown.reverse();
+  shown.forEach(function(i){
+    var row = TREND[i];
+    var t = svgEl("text", {x:X(i), y:M.t+ih+19, "class":"tick", "text-anchor":"middle"});
+    t.textContent = row.label;
+    if(!row.hasData) t.setAttribute("opacity", "0.45");
+    svg.appendChild(t);
+  });
+
+  /* Linien. Kategorien ohne Turniere erzeugen eine Lücke statt einer
+     Null-Linie — ein turnierfreier Monat ist kein 0-%-Anteil. */
+  var lastIdx = -1, li;
+  for(li=TREND.length-1; li>=0; li--){ if(TREND[li].hasData){ lastIdx = li; break; } }
+  var rDot = TREND.length > 16 ? 4 : 4.5;
+
+  var ends = [];
+  TOP5.forEach(function(name, si2){
+    var segs = [], cur = [], dx = off(si2);
+    TREND.forEach(function(row, i){
+      if(row.hasData) cur.push([X(i) + dx, Y(row.vals[si2])]);
+      else { if(cur.length) segs.push(cur); cur = []; }
+    });
+    if(cur.length) segs.push(cur);
+
+    segs.forEach(function(pts){
+      if(pts.length > 1){
+        svg.appendChild(svgEl("path", {
+          d: pts.map(function(p, i){ return (i ? "L" : "M") + p[0] + " " + p[1]; }).join(" "),
+          fill:"none", stroke:seriesColor(si2), "stroke-width":2,
+          "stroke-linejoin":"round", "stroke-linecap":"round"
+        }));
+      }
+      pts.forEach(function(p){
+        svg.appendChild(svgEl("circle", {cx:p[0], cy:p[1], r:rDot, fill:seriesColor(si2),
+          stroke:"var(--surface)", "stroke-width":2}));
+      });
+    });
+
+    if(lastIdx >= 0){
+      ends.push({name:name, si:si2, x:X(lastIdx) + dx, y:Y(TREND[lastIdx].vals[si2]),
+                 v:TREND[lastIdx].vals[si2]});
+    }
+  });
+
+  /* Direktlabels rechts — nur fuer Serien mit Wert > 0, sonst tragen Legende
+     und Tooltip die Identitaet. Mit Kollisionsauflösung + Leader-Linien. */
+  if(M.r > 40){
+    ends = ends.filter(function(e){ return e.v > 0; });
+    ends.sort(function(a,b){ return a.y - b.y; });
+    var minGap = 14, k;
+    for(k=1;k<ends.length;k++){
+      if(ends[k].y - ends[k-1].y < minGap) ends[k].y = ends[k-1].y + minGap;
+    }
+    /* Den gesamten Satz in den Plotbereich schieben, nicht einzelne Label
+       klemmen — sonst fallen mehrere gleiche Werte wieder aufeinander. */
+    if(ends.length){
+      var top = M.t + 6, bot = M.t + ih, d;
+      d = ends[ends.length-1].y - bot;
+      if(d > 0) ends.forEach(function(e){ e.y -= d; });
+      d = top - ends[0].y;
+      if(d > 0) ends.forEach(function(e){ e.y += d; });
+    }
+    /* Labels an einer gemeinsamen Kante ausrichten, auch wenn die Endpunkte
+       durch den Versatz unterschiedlich weit rechts liegen. */
+    var labX = X(lastIdx) + maxOff + 16;
+    ends.forEach(function(e){
+      var ty = e.y;
+      var oy = Y(TREND[lastIdx].vals[e.si]);
+      if(Math.abs(ty - oy) > 2 || e.x + 6 < labX - 4){
+        svg.appendChild(svgEl("line", {x1:e.x+6, y1:oy, x2:labX-4, y2:ty, "class":"leader"}));
+      }
+      var t = svgEl("text", {x:labX, y:ty+4, "class":"endlab"});
+      t.textContent = pct(e.v, 1);
+      svg.appendChild(t);
+    });
+  }
+
+  /* Crosshair + Tooltip */
+  var ch = svgEl("line", {x1:0, y1:M.t, x2:0, y2:M.t+ih, "class":"crosshair", opacity:0});
+  svg.appendChild(ch);
+  var halfBand = iw / (2 * Math.max(1, TREND.length - 1));
+  var hx = Math.max(0, M.l - halfBand);
+  var hx2 = Math.min(W, M.l + iw + halfBand);
+  var hit = svgEl("rect", {x:hx, y:M.t, width:hx2 - hx, height:ih, "class":"hitband"});
+  svg.appendChild(hit);
+
+  function nearest(clientX){
+    var r = svg.getBoundingClientRect();
+    var px = (clientX - r.left) * (W / r.width);
+    var bi = 0, bd = 1e9, i;
+    for(i=0;i<TREND.length;i++){
+      var d = Math.abs(X(i) - px);
+      if(d < bd){ bd = d; bi = i; }
+    }
+    return bi;
+  }
+  function move(ev){
+    var t = (ev.touches && ev.touches[0]) || ev;
+    var i = nearest(t.clientX);
+    ch.setAttribute("x1", X(i)); ch.setAttribute("x2", X(i));
+    ch.setAttribute("opacity", 1);
+    var row = TREND[i];
+    if(!row.hasData){
+      tipShow(t.clientX, t.clientY, row.full, [], "Keine Turniere in diesem Zeitraum");
+      return;
+    }
+    var order = TOP5.map(function(n, si3){ return {n:n, si:si3, v:row.vals[si3], g:row.games[si3]}; })
+                    .sort(function(a,b){ return b.v - a.v; });
+    tipShow(t.clientX, t.clientY, row.full, order.map(function(o){
+      return {name:o.n, value:pct(o.v,1), color:seriesColor(o.si)};
+    }), nf(row.total)+" Spiele");
+  }
+  hit.addEventListener("pointermove", move);
+  hit.addEventListener("pointerenter", move);
+  hit.addEventListener("pointerleave", function(){ ch.setAttribute("opacity", 0); tipHide(); });
+}
+
+function renderTrendLegend(){
+  var TOP5 = trend.names;
+  var host = document.getElementById("trend-legend");
+  host.textContent = "";
+  TOP5.forEach(function(name, i){
+    var s = document.createElement("span"); s.className = "lg";
+    var k = document.createElement("span"); k.className = "key";
+    k.style.background = seriesColor(i);
+    var t = document.createElement("span"); t.textContent = name;
+    s.appendChild(k); s.appendChild(t);
+    host.appendChild(s);
+  });
+}
+
+function renderTrendTable(){
+  var TREND = trend.rows, TOP5 = trend.names;
+  var tbl = document.getElementById("trend-table");
+  var thead = tbl.querySelector("thead"), tbody = tbl.querySelector("tbody");
+  thead.textContent = ""; tbody.textContent = "";
+  var tr = document.createElement("tr");
+  var th0 = document.createElement("th"); th0.textContent = "Deck"; th0.style.cursor = "default";
+  tr.appendChild(th0);
+  TREND.forEach(function(row){
+    var th = document.createElement("th"); th.textContent = row.label; th.style.cursor = "default";
+    th.title = row.full;
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr);
+  TOP5.forEach(function(name, si){
+    var r = document.createElement("tr");
+    var td = document.createElement("td");
+    var dot = document.createElement("span"); dot.className = "dot";
+    dot.style.background = seriesColor(si);
+    td.appendChild(dot); td.appendChild(document.createTextNode(name));
+    r.appendChild(td);
+    TREND.forEach(function(row){
+      var c = document.createElement("td");
+      c.textContent = row.hasData ? pct(row.vals[si], 1) : "–";
+      if(!row.hasData) c.style.color = "var(--muted)";
+      r.appendChild(c);
+    });
+    tbody.appendChild(r);
+  });
+  var tr2 = document.createElement("tr");
+  var td2 = document.createElement("td");
+  td2.textContent = "Spiele gesamt"; td2.style.color = "var(--muted)";
+  tr2.appendChild(td2);
+  TREND.forEach(function(row){
+    var c = document.createElement("td");
+    c.textContent = row.hasData ? nf(row.total) : "–";
+    c.style.color = "var(--muted)";
+    tr2.appendChild(c);
+  });
+  tbody.appendChild(tr2);
+}
+
+/* ============================ Kennzahlen ============================ */
+function renderTiles(sl, decks, players, totalGames){
+  var host = document.getElementById("tiles");
+  host.textContent = "";
+  var dates = uniq(sl.recs.map(function(r){ return r.d; }));
+  var topDeck = decks.length ? decks[0] : null;
+  var items = [
+    {lab:"Turniere", val:nf(dates.length), sub:sl.label},
+    {lab:"Teilnahmen", val:nf(sl.recs.length),
+     sub: dates.length ? nf(sl.recs.length/dates.length, 1)+" pro Turnier" : ""},
+    {lab:"Spiele", val:nf(totalGames), sub:nf(players.length)+" Spieler"},
+    {lab:"Decks", val:nf(decks.length),
+     sub: topDeck ? "häufigstes: "+topDeck.name : ""}
+  ];
+  items.forEach(function(it){
+    var d = document.createElement("div"); d.className = "tile";
+    var l = document.createElement("div"); l.className = "lab"; l.textContent = it.lab;
+    var v = document.createElement("div"); v.className = "val"; v.textContent = it.val;
+    var s = document.createElement("div"); s.className = "sub"; s.textContent = it.sub;
+    d.appendChild(l); d.appendChild(v); if(it.sub) d.appendChild(s);
+    host.appendChild(d);
+  });
+}
+
+/* ============================ Render ============================ */
+function render(){
+  var sl = sliceFor(current);
+  var da = aggDecks(sl.recs);
+  deckData = da.list;
+  shareTotal = da.totalGames;
+  playerData = aggPlayers(sl.recs);
+  tourData = sl.recs.slice();
+
+  renderTiles(sl, deckData, playerData, da.totalGames);
+  var top = renderShare(deckData, da.totalGames);
+  renderPie(deckData, da.totalGames);
+  applyShareMode();
+  renderWinrate(top);
+  deckTable.draw();
+  playerTable.draw();
+  tourTable.draw();
+
+  /* Entwicklungskurve: Deckauswahl und Achseneinteilung folgen dem Filter.
+     Serienreihenfolge nach Gesamtrang, damit die Farben stabil bleiben. */
+  trend.names = deckData.slice(0, TREND_N).map(function(d){ return d.name; })
+    .sort(function(a, b){
+      var ra = ALLTIME_RANK[a] === undefined ? 9999 : ALLTIME_RANK[a];
+      var rb = ALLTIME_RANK[b] === undefined ? 9999 : ALLTIME_RANK[b];
+      return ra - rb;
+    });
+  var tb = buildTrend(trend.names, sl);
+  trend.rows = tb.rows;
+  trend.unit = tb.unit;
+  renderTrendLegend();
+  renderTrendTable();
+  drawTrend();
+
+  var scope = sl.label;
+  document.getElementById("metanote").textContent =
+    "Zeitraum: " + scope + ". " + nf(da.totalGames) + " Spiele, " + nf(deckData.length) +
+    " verschiedene Decks. Die Diagramme zeigen die " + Math.min(TOPN, deckData.length) +
+    " meistgespielten Decks; Siegquoten aus wenigen Spielen sind statistisch wenig belastbar.";
+  document.getElementById("playernote").textContent =
+    "Zeitraum: " + scope + ". " + nf(playerData.length) + " Spieler, " +
+    nf(sl.recs.length) + " Teilnahmen.";
+  document.getElementById("tournote").textContent =
+    "Zeitraum: " + scope + ". " + nf(sl.recs.length) + " Einzelergebnisse.";
+  var dativ = {"Jahr":"Jahren", "Monat":"Monaten", "Turniertag":"Turniertagen"}[trend.unit];
+  var genitiv = {"Jahr":"Jahres", "Monat":"Monats", "Turniertag":"Turniertags"}[trend.unit];
+  var withData = trend.rows.filter(function(r){ return r.hasData; }).length;
+  document.getElementById("trendnote").textContent =
+    "Meta-Anteil der " + trend.names.length + " meistgespielten Decks im Zeitraum " + scope +
+    ", aufgeschlüsselt nach " + dativ + ".";
+  document.getElementById("trend-title").textContent = "Anteil der Meta je " + trend.unit;
+  document.getElementById("trendhint").textContent =
+    "Anteil = Spiele des Decks ÷ alle Spiele des " + genitiv + ". " +
+    (trend.unit === "Monat"
+      ? withData + " von 12 Monaten mit Turnieren; turnierfreie Monate lassen die Linie aussetzen."
+      : trend.unit === "Turniertag"
+        ? withData + " Turniertage im Fenster — einzelne Turniere sind kleine Stichproben."
+          + (withData <= 4 ? " Die Serien sind leicht seitlich versetzt gezeichnet, damit"
+                           + " gleiche Werte unterscheidbar bleiben." : "")
+        : "Das laufende Jahr ist ein Teiljahr.");
+}
+
+/* Filter-Pills, in drei sichtbar getrennte Gruppen */
+(function(){
+  var row = document.getElementById("filterrow");
+  var groups = [
+    {label:null,          kind:"all",  roll:false},
+    {label:"Jahre",       kind:"year", roll:false, hideOnMobile:true},
+    {label:"Letzte Tage", kind:"days", roll:true,  short:"Tage"}
+  ];
+
+  function pillFor(r, roll){
+    var b = document.createElement("button");
+    b.className = "pill" + (roll ? " roll" : "");
+    b.type = "button"; b.textContent = r.label;
+    b.setAttribute("aria-pressed", String(r.id === current));
+    b.addEventListener("click", function(){
+      current = r.id;
+      Array.prototype.forEach.call(row.querySelectorAll(".pill"), function(p){
+        p.setAttribute("aria-pressed", String(p === b));
+      });
+      render();
+    });
+    return b;
+  }
+
+  groups.forEach(function(g, gi){
+    var items = RANGES.filter(function(r){ return r.kind === g.kind; });
+    if(!items.length) return;
+    if(gi > 0){
+      var sp = document.createElement("span");
+      sp.className = "sep" + (g.roll ? " sep-roll" : "");
+      row.appendChild(sp);
+    }
+    var box = document.createElement("span");
+    box.className = "fgroup" + (g.roll ? " fgroup-roll" : "");
+    if(g.label){
+      var l = document.createElement("span");
+      l.className = "glabel" + (g.hideOnMobile ? " glabel-wide" : "");
+      var lo = document.createElement("span"); lo.className = "glong";
+      lo.textContent = g.label;
+      l.appendChild(lo);
+      if(g.short){
+        var sh = document.createElement("span"); sh.className = "gshort";
+        sh.textContent = g.short;
+        l.appendChild(sh);
+      }
+      box.appendChild(l);
+    }
+    items.forEach(function(r){ box.appendChild(pillFor(r, g.roll)); });
+    row.appendChild(box);
+  });
+})();
+
+/* Theme-Umschalter */
+(function(){
+  var btn = document.getElementById("themebtn");
+  function dark(){
+    var t = document.documentElement.getAttribute("data-theme");
+    if(t) return t === "dark";
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function sync(){ btn.textContent = dark() ? "Hell" : "Dunkel"; }
+  btn.addEventListener("click", function(){
+    document.documentElement.setAttribute("data-theme", dark() ? "light" : "dark");
+    sync(); drawTrend();
+  });
+  if(window.matchMedia){
+    try{
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function(){ sync(); drawTrend(); });
+    }catch(e){}
+  }
+  sync();
+})();
+
+/* Balken <-> Kuchendiagramm umschalten. Im verborgenen Zustand ist die
+   Containerbreite 0, deshalb wird nach dem Einblenden neu gezeichnet. */
+(function(){
+  var btn = document.getElementById("share-toggle");
+  btn.addEventListener("click", function(){
+    shareMode = (shareMode === "pie") ? "bars" : "pie";
+    applyShareMode();
+    if(shareMode === "pie") renderPie(deckData, shareTotal);
+  });
+})();
+
+/* Trend-Tabelle umschalten */
+(function(){
+  var btn = document.getElementById("trend-toggle");
+  var wrap = document.getElementById("trend-table-wrap");
+  btn.addEventListener("click", function(){
+    var open = wrap.classList.toggle("hidden") === false;
+    btn.setAttribute("aria-expanded", String(open));
+    btn.textContent = open ? "Tabelle ausblenden" : "Tabelle anzeigen";
+  });
+})();
+
+/* Kopf- und Fußtexte */
+document.getElementById("lede").textContent =
+  nf(uniq(ALL_DATES).length) + " Turniere von " + deDate(FIRST) + " bis " + deDate(LAST) + " · " +
+  nf(RAW.length) + " Einzelergebnisse · " + nf(aggPlayers(RAW).length) + " Spieler · " +
+  nf(aggDecks(RAW).list.length) + " Decks.";
+
+document.getElementById("footdata").textContent =
+  "Letztes erfasstes Turnier: " + deDate(LAST) + ". " +
+  nf(RAW.length) + " Ergebniszeilen, " + nf(aggDecks(RAW).totalGames) + " Spiele insgesamt.";
+
+/* Start — render() baut auch die Langzeitkurve auf */
+render();
+
+var rt = null;
+window.addEventListener("resize", function(){
+  clearTimeout(rt);
+  rt = setTimeout(function(){
+    drawTrend();
+    if(shareMode === "pie") renderPie(deckData, shareTotal);
+  }, 120);
+});
+})();
+</script>
+</body>
+</html>
