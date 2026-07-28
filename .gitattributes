@@ -1,0 +1,13 @@
+# Zeilenenden festnageln. Der Workflow enthaelt ein Shell-Skript, das auf dem
+# Linux-Runner mit CRLF fehlschlagen wuerde.
+* text=auto
+
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.py    text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+
+*.xlsx  binary
+*.png   binary
