@@ -11,3 +11,6 @@ Desktop.ini
 .idea/
 __pycache__/
 *.pyc
+
+# Vorschau wird erzeugt
+apps-script/preview.html

@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<base target="_top">
+<style>
+  :root{
+    color-scheme: light;
+    --page:#f9f9f7; --surface:#fcfcfb;
+    --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+    --wash:rgba(11,11,11,.035); --wash-2:rgba(11,11,11,.06);
+    --accent:#2a78d6; --good:#006300; --warn:#eda100; --bad:#d03b3b;
+    --r:10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:where(:not([data-theme="light"])){
+      color-scheme: dark;
+      --page:#0d0d0d; --surface:#1a1a19;
+      --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+      --wash:rgba(255,255,255,.04); --wash-2:rgba(255,255,255,.07);
+      --accent:#3987e5; --good:#0ca30c; --warn:#c98500; --bad:#e66767;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--page); color:var(--ink);
+    font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:0 20px 80px}
+
+  header.top{padding:32px 0 18px}
+  .eyebrow{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  h1{margin:6px 0 6px; font-size:clamp(24px,4vw,32px); line-height:1.15; letter-spacing:-.02em; font-weight:650}
+  .lede{margin:0; color:var(--ink-2); font-size:14px}
+  .lede a{color:var(--accent)}
+
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r); padding:18px; margin-bottom:16px}
+  .cardhead{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px}
+  h2{margin:0; font-size:16px; font-weight:620}
+  .hint{margin:0; font-size:12.5px; color:var(--muted)}
+
+  label{display:block; font-size:12.5px; color:var(--ink-2); margin-bottom:5px}
+  input[type=date], input[type=text], input[type=number]{
+    border:1px solid var(--border); background:var(--page); color:var(--ink);
+    border-radius:7px; padding:7px 10px; font:inherit; font-size:14px; width:100%;
+  }
+  input:focus{outline:2px solid var(--accent); outline-offset:-1px}
+  input[type=number]{text-align:right; font-variant-numeric:tabular-nums}
+
+  button{
+    border:1px solid var(--border); background:var(--surface); color:var(--ink-2);
+    border-radius:8px; padding:7px 13px; font:inherit; font-size:13.5px; cursor:pointer;
+  }
+  button:hover:not(:disabled){background:var(--wash-2); color:var(--ink)}
+  button:disabled{opacity:.45; cursor:default}
+  button.primary{background:var(--ink); color:var(--page); border-color:var(--ink); font-weight:550}
+  button.primary:hover:not(:disabled){opacity:.86; background:var(--ink); color:var(--page)}
+  button.danger{color:var(--bad)}
+  button.icon{padding:8px 9px; line-height:1; min-height:32px}
+  .btnrow{display:flex; gap:9px; flex-wrap:wrap; align-items:center}
+
+  /* ---------- Teilnehmerzeilen ---------- */
+  .rows{display:flex; flex-direction:column; gap:8px}
+  .rowhead, .row{
+    display:grid; gap:8px; align-items:center;
+    grid-template-columns:34px minmax(120px,1.4fr) minmax(120px,1.4fr) 56px 56px 56px 52px 34px;
+  }
+  .rowhead{font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; padding:0 2px}
+  .rowhead span:nth-child(n+4){text-align:right}
+  .place{
+    font-variant-numeric:tabular-nums; color:var(--muted); text-align:center;
+    font-size:13px; cursor:grab; user-select:none;
+  }
+  .row.dragging{opacity:.4}
+  .row.over{outline:2px dashed var(--accent); outline-offset:3px; border-radius:8px}
+  .games{
+    text-align:right; font-variant-numeric:tabular-nums; color:var(--muted);
+    font-size:13px; padding-right:4px;
+  }
+  .row.invalid input{border-color:var(--bad)}
+
+  /* ---------- Combobox ---------- */
+  .cb{position:relative}
+  .cb input.isnew{border-color:var(--warn)}
+  .cb .tagnew{
+    position:absolute; right:7px; top:50%; transform:translateY(-50%);
+    font-size:10px; font-weight:650; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--warn); pointer-events:none;
+  }
+  .cb .list{
+    position:absolute; z-index:40; left:0; right:0; top:calc(100% + 3px);
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.14); max-height:230px; overflow-y:auto; padding:4px;
+  }
+  .cb .opt{
+    padding:6px 9px; border-radius:6px; font-size:13.5px; cursor:pointer;
+    display:flex; align-items:center; gap:8px;
+  }
+  .cb .opt .n{margin-left:auto; color:var(--muted); font-size:11.5px; font-variant-numeric:tabular-nums}
+  .cb .opt.active{background:var(--wash-2)}
+  .cb .opt.create{color:var(--warn); font-weight:600; border-top:1px solid var(--border); border-radius:0 0 6px 6px; margin-top:3px}
+
+  /* ---------- Meldungen ---------- */
+  .msgs{display:flex; flex-direction:column; gap:7px; margin-top:12px}
+  .msg{
+    font-size:13px; padding:9px 12px; border-radius:8px; border:1px solid var(--border);
+    border-left-width:2px; background:var(--wash);
+  }
+  .msg.err{border-left-color:var(--bad); color:var(--ink)}
+  .msg.warn{border-left-color:var(--warn); color:var(--ink-2)}
+  .msg.ok{border-left-color:var(--good); color:var(--ink-2)}
+
+  /* ---------- Turnierliste ---------- */
+  .tlist{display:flex; flex-direction:column; gap:2px; max-height:320px; overflow-y:auto}
+  .titem{
+    display:flex; align-items:center; gap:10px; padding:7px 9px; border-radius:7px;
+    font-size:13.5px; cursor:pointer; border:1px solid transparent;
+  }
+  .titem:hover{background:var(--wash)}
+  .titem[aria-current="true"]{background:var(--wash-2); border-color:var(--border)}
+  .titem .d{font-variant-numeric:tabular-nums}
+  .titem .w{color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .titem .c{margin-left:auto; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums}
+
+  .grid2{display:grid; grid-template-columns:1fr 300px; gap:16px; align-items:start}
+  @media (max-width:900px){
+    .grid2{grid-template-columns:1fr}
+    .rowhead{display:none}
+    .row{
+      grid-template-columns:34px 1fr 1fr 34px;
+      grid-template-areas:"p sp sp x" "p dk dk x" "p w l t";
+      padding:10px; border:1px solid var(--border); border-radius:8px;
+    }
+    .row > .place{grid-area:p} .row > .c-player{grid-area:sp} .row > .c-deck{grid-area:dk}
+    .row > .c-w{grid-area:w} .row > .c-l{grid-area:l} .row > .c-t{grid-area:t}
+    .row > .games{display:none} .row > .c-x{grid-area:x}
+  }
+  .spinner{display:inline-block; width:13px; height:13px; border:2px solid var(--border);
+    border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:-2px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .busy{opacity:.55; pointer-events:none}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<!--__MOCK__-->
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Pioneer · Köln</div>
+  <h1>Turniereingabe</h1>
+  <p class="lede" id="lede">Wird geladen <span class="spinner"></span></p>
+</header>
+
+<div id="capacity"></div>
+
+<div class="grid2">
+  <div>
+    <div class="card">
+      <div class="cardhead">
+        <h2>Turnier</h2>
+        <div class="btnrow">
+          <button type="button" id="btn-new">Neues Turnier</button>
+        </div>
+      </div>
+      <div style="max-width:220px">
+        <label for="date">Datum</label>
+        <input type="date" id="date">
+      </div>
+      <p class="hint" id="date-state" style="margin-top:8px"></p>
+    </div>
+
+    <div class="card">
+      <div class="cardhead">
+        <h2>Teilnehmer</h2>
+        <div class="btnrow">
+          <button type="button" id="btn-sort">Nach Ergebnis sortieren</button>
+          <button type="button" id="btn-add">Zeile hinzufügen</button>
+        </div>
+      </div>
+      <p class="hint">Die Reihenfolge bestimmt die Platzierung. Zeilen lassen sich an der
+        Platznummer greifen und verschieben.</p>
+      <div class="rowhead" style="margin-top:12px">
+        <span>#</span><span>Spieler</span><span>Deck</span>
+        <span>S</span><span>N</span><span>U</span><span>Spiele</span><span></span>
+      </div>
+      <div class="rows" id="rows" style="margin-top:8px"></div>
+      <div class="msgs" id="msgs"></div>
+      <div class="btnrow" style="margin-top:16px">
+        <button type="button" class="primary" id="btn-save">Turnier speichern</button>
+        <button type="button" class="danger hidden" id="btn-delete">Turnier löschen</button>
+        <span id="savestate" class="hint"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><h2>Erfasste Turniere</h2></div>
+    <p class="hint">Anklicken zum Bearbeiten.</p>
+    <div class="tlist" id="tlist" style="margin-top:10px"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ------------------------------------------------------------------ */
+/* Anbindung: im Apps Script echt, in der Vorschau gegen Beispieldaten */
+/* ------------------------------------------------------------------ */
+var API = (function () {
+  if (window.__MOCK__) return mockApi(window.__MOCK__);
+  function call(fn, arg) {
+    return new Promise(function (res, rej) {
+      var r = google.script.run.withSuccessHandler(res).withFailureHandler(rej);
+      if (arg === undefined) r[fn](); else r[fn](arg);
+    });
+  }
+  return {
+    bootstrap: function () { return call('getBootstrap'); },
+    tournament: function (d) { return call('getTournament', d); },
+    save: function (p) { return call('saveTournament', p); },
+    remove: function (d) { return call('deleteTournament', d); },
+    live: true
+  };
+})();
+
+function mockApi(seed) {
+  var store = JSON.parse(JSON.stringify(seed));
+  var wait = function (v) {
+    return new Promise(function (r) { setTimeout(function () { r(v); }, 180); });
+  };
+  function rebuild() {
+    var pc = {}, dc = {};
+    Object.keys(store.byDate).forEach(function (d) {
+      store.byDate[d].forEach(function (e) {
+        pc[e.player] = (pc[e.player] || 0) + 1;
+        dc[e.deck] = (dc[e.deck] || 0) + 1;
+      });
+    });
+    var mk = function (c) {
+      return Object.keys(c).sort(function (a, b) {
+        return c[b] - c[a] || a.localeCompare(b, 'de');
+      }).map(function (n) { return { name: n, n: c[n] }; });
+    };
+    var rows = 0;
+    Object.keys(store.byDate).forEach(function (d) { rows += store.byDate[d].length; });
+    return {
+      user: 'vorschau@beispiel.de',
+      players: mk(pc), decks: mk(dc),
+      tournaments: Object.keys(store.byDate).sort().reverse().map(function (d) {
+        var t = store.byDate[d];
+        return { date: d, count: t.length, winner: t[0] ? t[0].player : '' };
+      }),
+      capacity: { lastRow: rows + 1, limit: 1001, free: Math.max(0, 1001 - (rows + 1)) }
+    };
+  }
+  return {
+    bootstrap: function () { return wait(rebuild()); },
+    tournament: function (d) { return wait(JSON.parse(JSON.stringify(store.byDate[d] || []))); },
+    save: function (p) {
+      if (p.originalDate && p.originalDate !== p.date) delete store.byDate[p.originalDate];
+      store.byDate[p.date] = p.entries;
+      return wait({ ok: true, written: p.entries.length, replaced: 0, capacity: rebuild().capacity });
+    },
+    remove: function (d) {
+      var n = (store.byDate[d] || []).length;
+      delete store.byDate[d];
+      return wait({ ok: true, removed: n });
+    },
+    live: false
+  };
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Zustand                                                             */
+/* ------------------------------------------------------------------ */
+var state = {
+  players: [], decks: [], tournaments: [],
+  entries: [],
+  originalDate: null,      // gesetzt, wenn ein vorhandenes Turnier bearbeitet wird
+  capacity: null,
+  busy: false
+};
+
+var $ = function (id) { return document.getElementById(id); };
+function deDate(iso) { var p = iso.split('-'); return p[2] + '.' + p[1] + '.' + p[0]; }
+
+
+/* ------------------------------------------------------------------ */
+/* Combobox                                                            */
+/* ------------------------------------------------------------------ */
+/* Tippen schlägt Bekanntes vor. Ein Name, den es noch nicht gibt, muss
+   ausdrücklich als neu bestätigt werden — sonst entstehen unbemerkt
+   Dubletten wie "Izzet Phoenix " mit Leerzeichen am Ende.               */
+function combobox(opts) {
+  var wrap = document.createElement('div');
+  wrap.className = 'cb ' + opts.cls;
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = opts.placeholder;
+  input.autocomplete = 'off';
+  input.value = opts.value || '';
+  var tag = document.createElement('span');
+  tag.className = 'tagnew hidden';
+  tag.textContent = 'neu';
+  wrap.appendChild(input); wrap.appendChild(tag);
+
+  var list = null, active = -1, confirmedNew = !!opts.confirmedNew;
+
+  function known(v) {
+    var t = v.trim().toLowerCase();
+    return opts.source().some(function (o) { return o.name.toLowerCase() === t; });
+  }
+  function paint() {
+    var v = input.value.trim();
+    var isNew = v && !known(v);
+    input.classList.toggle('isnew', isNew && confirmedNew);
+    tag.classList.toggle('hidden', !(isNew && confirmedNew));
+    opts.onChange(v, isNew, confirmedNew);
+  }
+  function close() { if (list) { list.remove(); list = null; active = -1; } }
+  function open() {
+    close();
+    var v = input.value.trim().toLowerCase();
+    var matches = opts.source().filter(function (o) {
+      return !v || o.name.toLowerCase().indexOf(v) !== -1;
+    }).slice(0, 8);
+    var exact = v && opts.source().some(function (o) { return o.name.toLowerCase() === v; });
+
+    list = document.createElement('div');
+    list.className = 'list';
+    matches.forEach(function (o) {
+      var el = document.createElement('div');
+      el.className = 'opt';
+      var n = document.createElement('span'); n.textContent = o.name;
+      var c = document.createElement('span'); c.className = 'n'; c.textContent = o.n + '×';
+      el.appendChild(n); el.appendChild(c);
+      el.addEventListener('mousedown', function (ev) {
+        ev.preventDefault();
+        input.value = o.name; confirmedNew = false; close(); paint();
+      });
+      list.appendChild(el);
+    });
+    if (v && !exact) {
+      var el2 = document.createElement('div');
+      el2.className = 'opt create';
+      el2.textContent = '„' + input.value.trim() + '" neu anlegen';
+      el2.addEventListener('mousedown', function (ev) {
+        ev.preventDefault();
+        confirmedNew = true; close(); paint();
+      });
+      list.appendChild(el2);
+    }
+    if (!list.children.length) { close(); return; }
+    wrap.appendChild(list);
+  }
+  function move(d) {
+    if (!list) return;
+    var els = [].slice.call(list.children);
+    els.forEach(function (e) { e.classList.remove('active'); });
+    active = Math.max(0, Math.min(els.length - 1, active + d));
+    els[active].classList.add('active');
+    els[active].scrollIntoView({ block: 'nearest' });
+  }
+
+  input.addEventListener('focus', open);
+  input.addEventListener('input', function () { confirmedNew = false; open(); paint(); });
+  input.addEventListener('blur', function () { setTimeout(function () { close(); paint(); }, 120); });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!list) open(); move(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+    else if (e.key === 'Enter') {
+      if (list && active >= 0) { e.preventDefault(); list.children[active].dispatchEvent(new Event('mousedown')); }
+    } else if (e.key === 'Escape') { close(); }
+  });
+
+  paint();
+  return {
+    el: wrap,
+    get value() { return input.value.trim(); },
+    get isNew() { return input.value.trim() && !known(input.value); },
+    get confirmed() { return confirmedNew; },
+    focus: function () { input.focus(); }
+  };
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Teilnehmerzeilen                                                    */
+/* ------------------------------------------------------------------ */
+function renderRows() {
+  var host = $('rows');
+  host.textContent = '';
+  state.entries.forEach(function (e, i) {
+    var row = document.createElement('div');
+    row.className = 'row';
+    row.draggable = true;
+    row.dataset.i = i;
+
+    var place = document.createElement('div');
+    place.className = 'place'; place.textContent = (i + 1) + '.';
+    place.title = 'Zum Verschieben ziehen';
+    row.appendChild(place);
+
+    var p = combobox({
+      cls: 'c-player', placeholder: 'Spieler', value: e.player,
+      confirmedNew: e.playerNew,
+      source: function () { return state.players; },
+      onChange: function (v, isNew, conf) { e.player = v; e.playerNew = isNew && conf; validate(); }
+    });
+    row.appendChild(p.el); e._p = p;
+
+    var d = combobox({
+      cls: 'c-deck', placeholder: 'Deck', value: e.deck,
+      confirmedNew: e.deckNew,
+      source: function () { return state.decks; },
+      onChange: function (v, isNew, conf) { e.deck = v; e.deckNew = isNew && conf; validate(); }
+    });
+    row.appendChild(d.el); e._d = d;
+
+    ['w', 'l', 't'].forEach(function (k) {
+      var inp = document.createElement('input');
+      inp.type = 'number'; inp.min = '0'; inp.step = '1';
+      inp.className = 'c-' + k;
+      inp.value = e[k];
+      inp.setAttribute('aria-label', { w: 'Siege', l: 'Niederlagen', t: 'Unentschieden' }[k]);
+      inp.addEventListener('input', function () {
+        e[k] = inp.value === '' ? 0 : Math.max(0, parseInt(inp.value, 10) || 0);
+        updateGames(row, e); validate();
+      });
+      row.appendChild(inp);
+    });
+
+    var g = document.createElement('div');
+    g.className = 'games';
+    row.appendChild(g);
+    updateGames(row, e);
+
+    var x = document.createElement('button');
+    x.type = 'button'; x.className = 'icon c-x'; x.textContent = '✕';
+    x.title = 'Zeile entfernen';
+    x.addEventListener('click', function () {
+      state.entries.splice(i, 1); renderRows(); validate();
+    });
+    row.appendChild(x);
+
+    row.addEventListener('dragstart', function (ev) {
+      row.classList.add('dragging');
+      ev.dataTransfer.setData('text/plain', String(i));
+      ev.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', function () { row.classList.remove('dragging'); });
+    row.addEventListener('dragover', function (ev) { ev.preventDefault(); row.classList.add('over'); });
+    row.addEventListener('dragleave', function () { row.classList.remove('over'); });
+    row.addEventListener('drop', function (ev) {
+      ev.preventDefault(); row.classList.remove('over');
+      var from = parseInt(ev.dataTransfer.getData('text/plain'), 10);
+      var to = i;
+      if (isNaN(from) || from === to) return;
+      var moved = state.entries.splice(from, 1)[0];
+      state.entries.splice(to, 0, moved);
+      renderRows(); validate();
+    });
+
+    host.appendChild(row);
+  });
+}
+
+function updateGames(row, e) {
+  var g = row.querySelector('.games');
+  if (g) g.textContent = (e.w + e.l + e.t) || '–';
+}
+
+function blankEntry() {
+  return { player: '', deck: '', w: 0, l: 0, t: 0, playerNew: false, deckNew: false };
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Prüfen                                                              */
+/* ------------------------------------------------------------------ */
+function validate() {
+  var errs = [], warns = [];
+  var entries = state.entries;
+
+  if (!$('date').value) errs.push('Bitte ein Datum wählen.');
+  if (entries.length < 2) errs.push('Ein Turnier braucht mindestens zwei Teilnehmer.');
+
+  var seen = {};
+  entries.forEach(function (e, i) {
+    var pos = 'Platz ' + (i + 1) + ': ';
+    if (!e.player) errs.push(pos + 'kein Spieler eingetragen.');
+    else if (e._p && e._p.isNew && !e._p.confirmed) {
+      errs.push(pos + '„' + e.player + '" ist unbekannt — im Vorschlagsfeld als neu bestätigen.');
+    }
+    if (!e.deck) errs.push(pos + 'kein Deck eingetragen.');
+    else if (e._d && e._d.isNew && !e._d.confirmed) {
+      errs.push(pos + '„' + e.deck + '" ist unbekannt — im Vorschlagsfeld als neu bestätigen.');
+    }
+    if (e.player) {
+      var k = e.player.toLowerCase();
+      if (seen[k]) errs.push(pos + '„' + e.player + '" kommt doppelt vor.');
+      seen[k] = true;
+    }
+    if (e.w + e.l + e.t === 0) errs.push(pos + 'keine Partien eingetragen.');
+  });
+
+  var counts = {};
+  entries.forEach(function (e) { var g = e.w + e.l + e.t; if (g) counts[g] = (counts[g] || 0) + 1; });
+  var distinct = Object.keys(counts);
+  if (distinct.length > 1) {
+    warns.push('Unterschiedliche Rundenzahl: ' +
+      distinct.sort().map(function (g) { return counts[g] + '× ' + g + ' Partien'; }).join(', ') +
+      '. Das kommt vor (Ausstieg, Freilos) und wird gespeichert.');
+  }
+  var newP = entries.filter(function (e) { return e.playerNew; }).map(function (e) { return e.player; });
+  var newD = entries.filter(function (e) { return e.deckNew; }).map(function (e) { return e.deck; });
+  if (newP.length) warns.push('Neue Spieler: ' + newP.join(', '));
+  if (newD.length) warns.push('Neue Decks: ' + newD.join(', '));
+
+  var host = $('msgs');
+  host.textContent = '';
+  errs.slice(0, 8).forEach(function (m) { host.appendChild(msg('err', m)); });
+  if (errs.length > 8) host.appendChild(msg('err', '… und ' + (errs.length - 8) + ' weitere.'));
+  warns.forEach(function (m) { host.appendChild(msg('warn', m)); });
+
+  $('btn-save').disabled = errs.length > 0 || state.busy;
+  return errs.length === 0;
+}
+
+function msg(kind, text) {
+  var d = document.createElement('div');
+  d.className = 'msg ' + kind;
+  d.textContent = text;
+  return d;
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Turnierliste                                                        */
+/* ------------------------------------------------------------------ */
+function renderList() {
+  var host = $('tlist');
+  host.textContent = '';
+  if (!state.tournaments.length) {
+    host.appendChild(msg('warn', 'Noch keine Turniere erfasst.'));
+    return;
+  }
+  state.tournaments.forEach(function (t) {
+    var el = document.createElement('div');
+    el.className = 'titem';
+    el.setAttribute('aria-current', String(t.date === state.originalDate));
+    var d = document.createElement('span'); d.className = 'd'; d.textContent = deDate(t.date);
+    var w = document.createElement('span'); w.className = 'w'; w.textContent = t.winner || '';
+    var c = document.createElement('span'); c.className = 'c'; c.textContent = t.count;
+    el.appendChild(d); el.appendChild(w); el.appendChild(c);
+    el.addEventListener('click', function () { load(t.date); });
+    host.appendChild(el);
+  });
+}
+
+function renderCapacity() {
+  var host = $('capacity');
+  host.textContent = '';
+  var c = state.capacity;
+  if (!c) return;
+  if (c.free < 120) {
+    host.appendChild(msg(c.free < 40 ? 'err' : 'warn',
+      'Noch ' + c.free + ' freie Zeilen bis Zeile ' + c.limit + '. Die Formeln der Tabs ' +
+      '„Spieler" und „Decks" reichen nur bis dorthin — danach zählen sie neue Turniere ' +
+      'nicht mehr mit. Die veröffentlichte Seite bleibt davon unberührt.'));
+  }
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Laden und Speichern                                                 */
+/* ------------------------------------------------------------------ */
+function setBusy(on, text) {
+  state.busy = on;
+  document.body.classList.toggle('busy', on);
+  $('savestate').textContent = text || '';
+  if (!on) validate();
+}
+
+function load(date) {
+  setBusy(true, 'Lade …');
+  API.tournament(date).then(function (rows) {
+    state.entries = rows.map(function (r) {
+      return { player: r.player, deck: r.deck, w: r.w, l: r.l, t: r.t,
+               playerNew: false, deckNew: false };
+    });
+    state.originalDate = date;
+    $('date').value = date;
+    $('btn-delete').classList.remove('hidden');
+    $('date-state').textContent = 'Vorhandenes Turnier vom ' + deDate(date) +
+      ' — Speichern ersetzt die ' + rows.length + ' bestehenden Zeilen.';
+    renderRows(); renderList(); setBusy(false);
+  }).catch(fail);
+}
+
+function reset() {
+  state.entries = [blankEntry(), blankEntry(), blankEntry(), blankEntry()];
+  state.originalDate = null;
+  $('btn-delete').classList.add('hidden');
+  $('date').value = '';
+  $('date-state').textContent = 'Datum wählen. Gibt es dafür schon ein Turnier, wird es zum Bearbeiten geladen.';
+  renderRows(); renderList(); validate();
+}
+
+function fail(e) {
+  setBusy(false);
+  var host = $('msgs');
+  host.textContent = '';
+  host.appendChild(msg('err', 'Fehler: ' + (e && e.message ? e.message : e)));
+}
+
+function save() {
+  if (!validate()) return;
+  setBusy(true, 'Speichere …');
+  API.save({
+    date: $('date').value,
+    originalDate: state.originalDate,
+    entries: state.entries.map(function (e) {
+      return { player: e.player, deck: e.deck, w: e.w, l: e.l, t: e.t };
+    })
+  }).then(function (res) {
+    if (!res.ok) {
+      setBusy(false);
+      var host = $('msgs'); host.textContent = '';
+      res.errors.forEach(function (m) { host.appendChild(msg('err', m)); });
+      return;
+    }
+    return API.bootstrap().then(function (b) {
+      applyBootstrap(b);
+      state.originalDate = $('date').value;
+      $('btn-delete').classList.remove('hidden');
+      setBusy(false);
+      /* Erst neu zeichnen, dann melden: renderRows() baut die Comboboxen auf,
+         die dabei validate() ausloesen — das wuerde die Meldung ueberschreiben. */
+      renderRows(); renderList(); renderCapacity();
+      var host = $('msgs'); host.textContent = '';
+      host.appendChild(msg('ok', res.written + ' Zeilen gespeichert' +
+        (res.replaced ? ', ' + res.replaced + ' ersetzt' : '') +
+        '. Die Seite aktualisiert sich in der Nacht — oder sofort über „Run workflow" auf GitHub.'));
+    });
+  }).catch(fail);
+}
+
+function remove() {
+  var date = state.originalDate;
+  if (!date) return;
+  if (!window.confirm('Turnier vom ' + deDate(date) + ' mit allen Zeilen löschen?')) return;
+  setBusy(true, 'Lösche …');
+  API.remove(date).then(function () {
+    return API.bootstrap().then(function (b) {
+      applyBootstrap(b); reset(); setBusy(false);
+      var host = $('msgs'); host.textContent = '';
+      host.appendChild(msg('ok', 'Turnier vom ' + deDate(date) + ' gelöscht.'));
+    });
+  }).catch(fail);
+}
+
+function applyBootstrap(b) {
+  state.players = b.players;
+  state.decks = b.decks;
+  state.tournaments = b.tournaments;
+  state.capacity = b.capacity;
+  $('lede').textContent = b.tournaments.length + ' Turniere erfasst · ' +
+    b.players.length + ' Spieler · ' + b.decks.length + ' Decks · angemeldet als ' + b.user;
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Start                                                               */
+/* ------------------------------------------------------------------ */
+$('btn-add').addEventListener('click', function () {
+  state.entries.push(blankEntry()); renderRows(); validate();
+});
+$('btn-new').addEventListener('click', reset);
+$('btn-save').addEventListener('click', save);
+$('btn-delete').addEventListener('click', remove);
+$('btn-sort').addEventListener('click', function () {
+  state.entries.sort(function (a, b) {
+    return (3 * b.w + b.t) - (3 * a.w + a.t) || b.w - a.w ||
+           a.player.localeCompare(b.player, 'de');
+  });
+  renderRows(); validate();
+});
+$('date').addEventListener('change', function () {
+  var v = $('date').value;
+  if (!v) return;
+  var hit = state.tournaments.filter(function (t) { return t.date === v; })[0];
+  if (hit && v !== state.originalDate) { load(v); return; }
+  if (!hit) {
+    state.originalDate = null;
+    $('btn-delete').classList.add('hidden');
+    $('date-state').textContent = 'Neues Turnier am ' + deDate(v) + '.';
+  }
+  renderList(); validate();
+});
+
+API.bootstrap().then(function (b) {
+  applyBootstrap(b);
+  renderCapacity();
+  reset();
+}).catch(fail);
+</script>
+</body>
+</html>
