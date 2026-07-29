@@ -169,8 +169,6 @@
   </p>
 </header>
 
-<div id="capacity"></div>
-
 <div class="grid2">
   <div>
     <div class="card">
@@ -272,7 +270,7 @@ function mockApi(seed) {
         var t = store.byDate[d];
         return { date: d, count: t.length, winner: t[0] ? t[0].player : '' };
       }),
-      capacity: { lastRow: rows + 1, limit: 1001, free: Math.max(0, 1001 - (rows + 1)) }
+      rowCount: rows
     };
   }
   return {
@@ -292,8 +290,7 @@ function mockApi(seed) {
       });
       if (p.originalDate && p.originalDate !== p.date) delete store.byDate[p.originalDate];
       store.byDate[p.date] = p.entries;
-      return wait({ ok: true, written: p.entries.length, replaced: 0,
-                    created: created, capacity: rebuild().capacity });
+      return wait({ ok: true, written: p.entries.length, replaced: 0, created: created });
     },
     remove: function (d) {
       var n = (store.byDate[d] || []).length;
@@ -312,7 +309,6 @@ var state = {
   players: [], decks: [], tournaments: [],
   entries: [],
   originalDate: null,      // gesetzt, wenn ein vorhandenes Turnier bearbeitet wird
-  capacity: null,
   busy: false
 };
 
@@ -641,19 +637,6 @@ function renderList() {
   });
 }
 
-function renderCapacity() {
-  var host = $('capacity');
-  host.textContent = '';
-  var c = state.capacity;
-  if (!c) return;
-  if (c.free < 120) {
-    host.appendChild(msg(c.free < 40 ? 'err' : 'warn',
-      'Noch ' + c.free + ' freie Zeilen bis Zeile ' + c.limit + '. Die Formeln der Tabs ' +
-      '„Spieler" und „Decks" reichen nur bis dorthin — danach zählen sie neue Turniere ' +
-      'nicht mehr mit. Die veröffentlichte Seite bleibt davon unberührt.'));
-  }
-}
-
 
 /* ------------------------------------------------------------------ */
 /* Laden und Speichern                                                 */
@@ -720,7 +703,7 @@ function save() {
       setBusy(false);
       /* Erst neu zeichnen, dann melden: renderRows() baut die Comboboxen auf,
          die dabei validate() ausloesen — das wuerde die Meldung ueberschreiben. */
-      renderRows(); renderList(); renderCapacity();
+      renderRows(); renderList();
       var host = $('msgs'); host.textContent = '';
       host.appendChild(msg('ok', res.written + ' Zeilen gespeichert' +
         (res.replaced ? ', ' + res.replaced + ' ersetzt' : '') +
@@ -756,7 +739,6 @@ function applyBootstrap(b) {
   state.players = b.players;
   state.decks = b.decks;
   state.tournaments = b.tournaments;
-  state.capacity = b.capacity;
   $('lede').textContent = b.tournaments.length + ' Turniere erfasst · ' +
     b.players.length + ' Spieler · ' + b.decks.length + ' Decks · angemeldet als ' + b.user;
 }
@@ -793,7 +775,6 @@ $('date').addEventListener('change', function () {
 
 API.bootstrap().then(function (b) {
   applyBootstrap(b);
-  renderCapacity();
   reset();
 }).catch(fail);
 </script>

@@ -11,12 +11,13 @@ var TAB = 'Tuniere';
 var COLS = 8;                 // A..H: Datum, Platz, Spieler, Deck, S, N, U, Spiele
 var DATE_FORMAT = 'dd.MM.yyyy';
 
-/**
- * Die Formeln der Tabs "Spieler" und "Decks" greifen auf Tuniere!X$2:X1001 zu.
- * Jenseits davon zählen sie neue Zeilen nicht mehr mit. Die Oberfläche warnt,
- * sobald es eng wird.
+/*
+ * Hinweis fuer spaetere Analysen: die Formeln der Tabs "Spieler" und "Decks"
+ * verwenden offene Spaltenbereiche (Tuniere!C$2:C). Es gibt also KEINE
+ * Zeilengrenze. Im XLSX-Export erscheinen sie faelschlich als C$2:C1001, weil
+ * offene Bereiche in diesem Format nicht darstellbar sind und auf die
+ * damalige Blattgroesse festgeschrieben werden. Nicht darauf hereinfallen.
  */
-var FORMULA_LIMIT = 1001;
 
 /** Leer lassen = nur der Eigentümer. Sonst Google-Adressen eintragen. */
 var ALLOWED_USERS = [];
@@ -110,7 +111,6 @@ function getBootstrap() {
   });
   var dates = Object.keys(byDate).sort().reverse();
 
-  var lastRow = rows.length ? rows[rows.length - 1].row : 1;
   return {
     user: Session.getEffectiveUser().getEmail(),
     players: byFrequency_(rows, 'player'),
@@ -122,12 +122,7 @@ function getBootstrap() {
         count: t.length,
         winner: (t.filter(function (x) { return x.place === 1; })[0] || {}).player || ''
       };
-    }),
-    capacity: {
-      lastRow: lastRow,
-      limit: FORMULA_LIMIT,
-      free: Math.max(0, FORMULA_LIMIT - lastRow)
-    }
+    })
   };
 }
 
@@ -341,13 +336,11 @@ function saveTournament(payload) {
     sh.getRange(at, 1, values.length, COLS).setValues(values);
     sh.getRange(at, 1, values.length, 1).setNumberFormat(DATE_FORMAT);
 
-    var last = sh.getLastRow();
     return {
       ok: true,
       written: values.length,
       replaced: replaced,
-      created: created,
-      capacity: { lastRow: last, limit: FORMULA_LIMIT, free: Math.max(0, FORMULA_LIMIT - last) }
+      created: created
     };
   } finally {
     lock.releaseLock();

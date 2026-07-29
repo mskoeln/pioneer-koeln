@@ -101,18 +101,18 @@ Zwei Eigenheiten der Mappe sind dabei berücksichtigt:
 Die Quellbereiche der Datenprüfung reichen bis `Spieler!A205` und
 `Decks!A2997` — dort ist auf lange Sicht Platz.
 
-## Zeilengrenze
+## Falle: offene Bereiche im XLSX-Export
 
-Die Formeln der Tabs **Spieler** und **Decks** greifen auf `Tuniere!X$2:X1001`
-zu. Jenseits von Zeile 1001 zählen sie neue Turniere nicht mehr mit. Das
-Formular warnt, sobald es eng wird.
+Die Formeln der Tabs *Spieler* und *Decks* verwenden **offene Spaltenbereiche**,
+etwa `COUNTIF(Tuniere!C$2:C; A2)`. Es gibt also keine Zeilengrenze; neue
+Turniere werden beliebig weit unten mitgezählt.
 
-Betroffen ist nur die Tabelle selbst — die veröffentlichte Seite rechnet über
-`build.py` direkt aus den Rohdaten und ist unabhängig davon.
+Im XLSX-Export erscheinen dieselben Formeln als `COUNTIF(Tuniere!C$2:C1001; A2)`,
+weil offene Bereiche in diesem Format nicht darstellbar sind und auf die
+Blattgröße zum Exportzeitpunkt festgeschrieben werden. Wer den Export
+analysiert, schließt daraus fälschlich auf eine Grenze bei Zeile 1001.
 
-Dauerhaft lösen: in beiden Tabs `1001` durch eine großzügigere Zeile ersetzen,
-etwa `5001`. In der Tabelle über *Bearbeiten → Suchen und ersetzen*, mit
-aktiviertem *Auch in Formeln suchen*.
+Maßgeblich ist immer die Formel in der Tabelle selbst, nicht die im Export.
 
 ## Dateien
 
