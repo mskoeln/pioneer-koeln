@@ -276,9 +276,21 @@ function mockApi(seed) {
     bootstrap: function () { return wait(rebuild()); },
     tournament: function (d) { return wait(JSON.parse(JSON.stringify(store.byDate[d] || []))); },
     save: function (p) {
+      // Wie der Server: erst pruefen, welche Namen es noch nicht gibt
+      var before = rebuild();
+      var knownP = {}, knownD = {};
+      before.players.forEach(function (x) { knownP[x.name.toLowerCase()] = true; });
+      before.decks.forEach(function (x) { knownD[x.name.toLowerCase()] = true; });
+      var created = { players: [], decks: [] };
+      p.entries.forEach(function (e) {
+        var a = String(e.player).trim(), b = String(e.deck).trim();
+        if (a && !knownP[a.toLowerCase()]) { knownP[a.toLowerCase()] = true; created.players.push(a); }
+        if (b && !knownD[b.toLowerCase()]) { knownD[b.toLowerCase()] = true; created.decks.push(b); }
+      });
       if (p.originalDate && p.originalDate !== p.date) delete store.byDate[p.originalDate];
       store.byDate[p.date] = p.entries;
-      return wait({ ok: true, written: p.entries.length, replaced: 0, capacity: rebuild().capacity });
+      return wait({ ok: true, written: p.entries.length, replaced: 0,
+                    created: created, capacity: rebuild().capacity });
     },
     remove: function (d) {
       var n = (store.byDate[d] || []).length;
@@ -710,6 +722,15 @@ function save() {
       host.appendChild(msg('ok', res.written + ' Zeilen gespeichert' +
         (res.replaced ? ', ' + res.replaced + ' ersetzt' : '') +
         '. Die Seite aktualisiert sich in der Nacht — oder sofort über „Run workflow" auf GitHub.'));
+      var c = res.created || { players: [], decks: [] };
+      if (c.players.length || c.decks.length) {
+        var parts = [];
+        if (c.players.length) parts.push('Spieler ' + c.players.join(', '));
+        if (c.decks.length) parts.push('Decks ' + c.decks.join(', '));
+        host.appendChild(msg('ok', 'Neu in die Tabelle aufgenommen: ' + parts.join(' · ') +
+          '. Die Formelzeile wurde jeweils mitkopiert, die Tabs „Spieler" und „Decks" ' +
+          'rechnen den Namen also ab sofort mit.'));
+      }
     });
   }).catch(fail);
 }

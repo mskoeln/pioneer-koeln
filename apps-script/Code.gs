@@ -179,6 +179,94 @@ function validate_(date, entries) {
 
 
 /* ------------------------------------------------------------------ */
+/* Namenslisten in den Tabs "Spieler" und "Decks" mitpflegen            */
+/* ------------------------------------------------------------------ */
+/*
+ * Beide Tabs fuehren eine von Hand gepflegte Namensliste in Spalte A; jede
+ * Zeile traegt daneben ~30 bzw. ~42 Formeln, die aus "Tuniere" rechnen. Fehlt
+ * ein Name dort, existiert fuer ihn keine Zeile und er wird in diesen Tabs
+ * nicht gezaehlt — waehrend die veroeffentlichte Seite ihn korrekt zeigt, weil
+ * sie direkt aus "Tuniere" rechnet. Genau dieses stille Auseinanderlaufen
+ * verhindern die folgenden Funktionen.
+ *
+ * Die Datenpruefung in "Tuniere" (Spalte C/D, Quelle Spieler!A2:A205 bzw.
+ * Decks!A2:A2997) greift nur bei manueller Eingabe. Ein Skript umgeht sie —
+ * darum darf sich das Formular nicht darauf verlassen.
+ */
+
+var NAME_TABS = { player: 'Spieler', deck: 'Decks' };
+
+/** Letzte Zeile der Namensliste. Endet an der ersten Luecke, damit
+ *  Hilfszellen weiter unten (Decks ab Zeile 141) nicht mitgezaehlt werden. */
+function lastNameRow_(sh) {
+  var colA = sh.getRange(1, 1, sh.getMaxRows(), 1).getValues();
+  var last = 1;
+  for (var i = 1; i < colA.length; i++) {
+    if (String(colA[i][0]).trim() === '') break;
+    last = i + 1;
+  }
+  return last;
+}
+
+function listNames_(sh) {
+  var last = lastNameRow_(sh);
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, 1).getValues()
+    .map(function (r) { return String(r[0]).trim(); })
+    .filter(function (v) { return v !== ''; });
+}
+
+/**
+ * Haengt einen Namen an, falls er fehlt, und uebernimmt die Formelzeile der
+ * letzten Datenzeile. Rueckgabe: true, wenn angelegt wurde.
+ */
+function ensureName_(sh, name) {
+  var wanted = String(name).trim();
+  if (!wanted) return false;
+  var existing = listNames_(sh);
+  for (var i = 0; i < existing.length; i++) {
+    if (existing[i].toLowerCase() === wanted.toLowerCase()) return false;
+  }
+
+  var from = lastNameRow_(sh);
+  var to = from + 1;
+  if (to > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), 1);
+
+  var width = sh.getLastColumn();
+  if (width > 1) {
+    // Formeln uebernehmen; copyTo passt relative Bezuege wie eine Kopie per Hand an
+    sh.getRange(from, 2, 1, width - 1).copyTo(sh.getRange(to, 2, 1, width - 1));
+  }
+  sh.getRange(to, 1).setValue(wanted);
+  return true;
+}
+
+/** Pflegt alle in einem Turnier verwendeten Namen ein. */
+function ensureNames_(ss, entries) {
+  var created = { players: [], decks: [] };
+  var pSheet = ss.getSheetByName(NAME_TABS.player);
+  var dSheet = ss.getSheetByName(NAME_TABS.deck);
+  if (!pSheet || !dSheet) {
+    throw new Error('Tab "' + NAME_TABS.player + '" oder "' + NAME_TABS.deck + '" fehlt.');
+  }
+
+  var seenP = {}, seenD = {};
+  entries.forEach(function (e) {
+    var p = String(e.player).trim(), d = String(e.deck).trim();
+    if (p && !seenP[p.toLowerCase()]) {
+      seenP[p.toLowerCase()] = true;
+      if (ensureName_(pSheet, p)) created.players.push(p);
+    }
+    if (d && !seenD[d.toLowerCase()]) {
+      seenD[d.toLowerCase()] = true;
+      if (ensureName_(dSheet, d)) created.decks.push(d);
+    }
+  });
+  return created;
+}
+
+
+/* ------------------------------------------------------------------ */
 /* Schreiben                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -216,7 +304,14 @@ function saveTournament(payload) {
     return { ok: false, errors: ['Die Mappe ist gerade belegt. Bitte erneut versuchen.'] };
   }
   try {
-    var sh = sheet_();
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sh = ss.getSheetByName(TAB);
+    if (!sh) throw new Error('Tab "' + TAB + '" nicht gefunden.');
+
+    // Erst die Namenslisten, dann die Ergebniszeilen: so passen die Werte in
+    // Spalte C/D anschliessend zur Datenpruefung der Mappe.
+    var created = ensureNames_(ss, entries);
+
     var replaced = 0;
     if (payload.originalDate && payload.originalDate !== date) {
       replaced += removeDate_(sh, payload.originalDate);
@@ -251,6 +346,7 @@ function saveTournament(payload) {
       ok: true,
       written: values.length,
       replaced: replaced,
+      created: created,
       capacity: { lastRow: last, limit: FORMULA_LIMIT, free: Math.max(0, FORMULA_LIMIT - last) }
     };
   } finally {

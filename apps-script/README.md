@@ -71,6 +71,36 @@ Die Platzierung ergibt sich aus der Reihenfolge der Zeilen. *Nach Ergebnis
 sortieren* ordnet nach Punkten, danach lässt sich per Ziehen an der Platznummer
 korrigieren — Feinheiten wie Buchholz kann das Formular nicht kennen.
 
+## Neue Spieler und Decks
+
+Die Tabs **Spieler** und **Decks** führen eine von Hand gepflegte Namensliste in
+Spalte A. Daneben trägt jede Zeile 30 bzw. 42 Formeln, die aus „Tuniere"
+rechnen. Fehlt ein Name dort, gibt es für ihn keine Zeile — er wird in diesen
+Tabs nicht gezählt, während die veröffentlichte Seite ihn korrekt anzeigt, weil
+sie direkt aus „Tuniere" rechnet.
+
+Die Datenprüfung in „Tuniere" (Spalte C und D) fängt das bei manueller Eingabe
+mit einer Fehlermeldung ab. **Ein Skript umgeht diese Prüfung** — der Wert
+landet stillschweigend in der Zelle. Darauf darf sich das Formular also nicht
+verlassen.
+
+Deshalb pflegt es die Listen selbst: Wird ein bestätigt neuer Name gespeichert,
+hängt das Skript ihn in `Spieler!A` bzw. `Decks!A` an und kopiert die Formelzeile
+der letzten Datenzeile mit (`copyTo` passt relative Bezüge an, genau wie eine
+Kopie per Hand). Anschließend meldet das Formular, was es angelegt hat.
+
+Zwei Eigenheiten der Mappe sind dabei berücksichtigt:
+
+- Der Tab **Decks** hat ab Zeile 141 Hilfszellen unterhalb der Namensliste
+  (`I143` = Gesamtspiele). Die Liste endet daher an der ersten Lücke, nicht bei
+  `getLastRow()`.
+- Kopiert wird aus der **letzten** Datenzeile. In `Spieler!AF66` steht eine
+  einzelne verirrte Formel, die es in keiner anderen Zeile gibt; aus Zeile 67
+  wird sie nicht mitgeschleppt.
+
+Die Quellbereiche der Datenprüfung reichen bis `Spieler!A205` und
+`Decks!A2997` — dort ist auf lange Sicht Platz.
+
 ## Zeilengrenze
 
 Die Formeln der Tabs **Spieler** und **Decks** greifen auf `Tuniere!X$2:X1001`
