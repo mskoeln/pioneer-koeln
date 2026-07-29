@@ -101,6 +101,39 @@ Zwei Eigenheiten der Mappe sind dabei berücksichtigt:
 Die Quellbereiche der Datenprüfung reichen bis `Spieler!A205` und
 `Decks!A2997` — dort ist auf lange Sicht Platz.
 
+## Seite sofort neu bauen (optional)
+
+Ohne Einrichtung erscheint ein gespeichertes Turnier erst nach dem nächtlichen
+Lauf auf der Webseite. Mit einem GitHub-Token stößt das Skript den Neubau
+direkt an — dann ist die Seite nach etwa einer Minute aktuell.
+
+**1 · Token erzeugen.** GitHub → *Settings* → *Developer settings* →
+*Personal access tokens* → **Fine-grained tokens** → *Generate new token*
+
+- *Repository access:* **Only select repositories** → `pioneer-koeln`
+- *Permissions* → *Repository permissions* → **Actions: Read and write**
+- Laufzeit nach Geschmack; nach Ablauf greift wieder der nächtliche Lauf
+
+**2 · Token im Skript hinterlegen.** Apps Script → Zahnrad
+*Projekteinstellungen* → *Skripteigenschaften* → **Eigenschaft hinzufügen**
+
+| Eigenschaft | Wert |
+|---|---|
+| `GITHUB_TOKEN` | der erzeugte Token |
+
+Der Token liegt damit auf Googles Servern und wird nie an den Browser
+ausgeliefert. Ins Repository gehört er nicht.
+
+**3 · Erneut bereitstellen.** Der erste Aufruf braucht die Berechtigung für
+externe Verbindungen — Google fragt danach.
+
+Danach meldet das Formular nach dem Speichern „Die öffentliche Seite wird jetzt
+neu gebaut". Schlägt der Anstoß fehl, etwa bei abgelaufenem Token, erscheint ein
+Hinweis und der nächtliche Lauf zieht es nach.
+
+**Den nächtlichen Lauf würde ich behalten.** Er kostet nichts und ist das Netz
+für den Fall, dass ein Anstoß scheitert oder jemand die Tabelle direkt bearbeitet.
+
 ## Falle: offene Bereiche im XLSX-Export
 
 Die Formeln der Tabs *Spieler* und *Decks* verwenden **offene Spaltenbereiche**,

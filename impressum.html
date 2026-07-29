@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, noarchive">
+<title>Impressum · Pioneer Statistik Köln</title>
+<style>
+  :root{
+    color-scheme: light;
+    --page:#f9f9f7; --surface:#fcfcfb;
+    --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+    --border:rgba(11,11,11,.10); --wash-2:rgba(11,11,11,.06);
+    --accent:#2a78d6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:where(:not([data-theme="light"])){
+      color-scheme: dark;
+      --page:#0d0d0d; --surface:#1a1a19;
+      --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+      --border:rgba(255,255,255,.10); --wash-2:rgba(255,255,255,.07);
+      --accent:#3987e5;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--page); color:var(--ink);
+    font:15px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  .wrap{max-width:680px; margin:0 auto; padding:0 20px 72px}
+  header{padding:36px 0 8px}
+  .eyebrow{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  h1{margin:6px 0 0; font-size:clamp(26px,5vw,34px); line-height:1.15; letter-spacing:-.02em; font-weight:650}
+  h2{margin:32px 0 6px; font-size:16px; font-weight:620}
+  p{margin:0 0 12px; color:var(--ink-2)}
+  address{font-style:normal; color:var(--ink-2)}
+  a{color:var(--accent)}
+  .card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:16px 18px; margin:10px 0 0;
+  }
+  .back{
+    display:inline-block; margin-top:36px; padding-top:18px;
+    border-top:1px solid var(--border); width:100%; font-size:13.5px;
+  }
+  /* Der Platzhalter muss auffallen, damit er nicht online stehen bleibt. */
+  .todo{
+    background:#fab219; color:#0b0b0b; padding:1px 6px; border-radius:4px;
+    font-weight:650; font-size:13px;
+  }
+  .mail{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Pioneer · Köln</div>
+  <h1>Impressum</h1>
+</header>
+
+<h2>Angaben gemäß § 5 DDG</h2>
+<div class="card">
+  <address>
+    Manuel Schmitz<br>
+    Friedrich-Karl-Str. 137<br>
+    <span class="todo">PLZ und Ort ergänzen</span><br>
+    Deutschland
+  </address>
+</div>
+
+<h2>Kontakt</h2>
+<p>E-Mail: <span class="mail" id="mail"></span></p>
+<noscript><p>E-Mail: ebnemhisq<span>&#64;</span>mozmail<span>&#46;</span>com</p></noscript>
+
+<h2>Haftung für Inhalte</h2>
+<p>Die Inhalte unserer Seiten wurden mit größter Sorgfalt erstellt. Für die
+Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir jedoch keine
+Gewähr übernehmen.</p>
+
+<h2>Haftung für Links</h2>
+<p>Unser Angebot enthält Links zu externen Webseiten Dritter, auf deren Inhalte
+wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch
+keine Gewähr übernehmen.</p>
+
+<h2>Urheberrecht</h2>
+<p>Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten
+unterliegen dem deutschen Urheberrecht. Beiträge Dritter sind als solche
+gekennzeichnet.</p>
+
+<a class="back" href="./">← Zur Turnierstatistik</a>
+
+</div>
+
+<script>
+/* Die Adresse steht nirgends zusammenhängend im Quelltext: sie wird aus
+   Teilen gesetzt und der mailto-Verweis erst hier erzeugt. Damit findet ein
+   Scraper, der nur den HTML-Text durchsucht, keine gültige Adresse.
+   Bewusst OHNE Zero-Width-Zeichen — die würden beim Kopieren mitwandern und
+   die Adresse unbrauchbar machen. Text bleibt lesbar und kopierbar, auch
+   ohne JavaScript (siehe noscript oben). */
+(function () {
+  var user = ['ebnem', 'hisq'].join('');
+  var host = ['mozmail', 'com'].join(String.fromCharCode(46));
+  var addr = user + String.fromCharCode(64) + host;
+  var el = document.getElementById('mail');
+  var a = document.createElement('a');
+  a.href = String.fromCharCode(109, 97, 105, 108, 116, 111, 58) + addr;
+  a.textContent = addr;
+  el.appendChild(a);
+})();
+</script>
+</body>
+</html>

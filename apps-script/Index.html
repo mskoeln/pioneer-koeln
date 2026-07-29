@@ -87,6 +87,11 @@
   }
   .row.dragging{opacity:.4}
   .row.over{outline:2px dashed var(--accent); outline-offset:3px; border-radius:8px}
+  /* Auf dem Desktop verschwindet der Behälter, die drei Felder rutschen in die
+     Spalten der Kopfzeile. Die Bezeichnung steht dort schon oben. */
+  .nums{display:contents}
+  .num{display:block; margin:0}
+  .numcap{display:none}
   .games{
     text-align:right; font-variant-numeric:tabular-nums; color:var(--muted);
     font-size:13px; padding-right:4px;
@@ -142,12 +147,20 @@
     .rowhead{display:none}
     .row{
       grid-template-columns:34px 1fr 1fr 34px;
-      grid-template-areas:"p sp sp x" "p dk dk x" "p w l t";
+      grid-template-areas:"p sp sp x" "p dk dk x" "n n n n";
       padding:10px; border:1px solid var(--border); border-radius:8px;
     }
     .row > .place{grid-area:p} .row > .c-player{grid-area:sp} .row > .c-deck{grid-area:dk}
-    .row > .c-w{grid-area:w} .row > .c-l{grid-area:l} .row > .c-t{grid-area:t}
     .row > .games{display:none} .row > .c-x{grid-area:x}
+    /* Eigene Zeile mit drei gleich breiten Feldern und sichtbaren Bezeichnungen */
+    .nums{
+      grid-area:n; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+      margin-top:2px;
+    }
+    .numcap{
+      display:block; font-size:10.5px; font-weight:650; letter-spacing:.05em;
+      text-transform:uppercase; color:var(--muted); margin-bottom:3px;
+    }
   }
   .spinner{display:inline-block; width:13px; height:13px; border:2px solid var(--border);
     border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:-2px}
@@ -449,18 +462,31 @@ function renderRows() {
     });
     row.appendChild(d.el); e._d = d;
 
+    /* Die drei Zahlenfelder stecken in einem Behälter. Auf dem Desktop löst er
+       sich per display:contents auf, damit sie in die Spalten der Kopfzeile
+       fallen; auf dem Handy bildet er eine eigene Zeile mit sichtbaren
+       Bezeichnungen — dort ist die Kopfzeile ausgeblendet. */
+    var nums = document.createElement('div');
+    nums.className = 'nums';
     ['w', 'l', 't'].forEach(function (k) {
+      var lab = document.createElement('label');
+      lab.className = 'num c-' + k;
+      var cap = document.createElement('span');
+      cap.className = 'numcap';
+      cap.textContent = { w: 'S', l: 'N', t: 'U' }[k];
       var inp = document.createElement('input');
       inp.type = 'number'; inp.min = '0'; inp.step = '1';
-      inp.className = 'c-' + k;
+      inp.inputMode = 'numeric';
       inp.value = e[k];
       inp.setAttribute('aria-label', { w: 'Siege', l: 'Niederlagen', t: 'Unentschieden' }[k]);
       inp.addEventListener('input', function () {
         e[k] = inp.value === '' ? 0 : Math.max(0, parseInt(inp.value, 10) || 0);
         updateGames(row, e); validate();
       });
-      row.appendChild(inp);
+      lab.appendChild(cap); lab.appendChild(inp);
+      nums.appendChild(lab);
     });
+    row.appendChild(nums);
 
     var g = document.createElement('div');
     g.className = 'games';
@@ -613,6 +639,21 @@ function msg(kind, text) {
   return d;
 }
 
+/* Rückmeldung zum Neubau der öffentlichen Seite. Ohne hinterlegten Token
+   passiert das erst nachts — das ist kein Fehler, nur langsamer. */
+function buildMsg(build) {
+  if (build && build.triggered) {
+    return msg('ok', 'Die öffentliche Seite wird jetzt neu gebaut — in etwa einer ' +
+      'Minute ist sie aktuell.');
+  }
+  if (build && build.reason && build.reason.indexOf('kein Token') === -1) {
+    return msg('warn', 'Der sofortige Neubau ließ sich nicht anstoßen (' + build.reason +
+      '). Die Nacht zieht es nach.');
+  }
+  return msg('ok', 'Die öffentliche Seite aktualisiert sich in der Nacht — oder sofort ' +
+    'über „Run workflow" auf GitHub.');
+}
+
 
 /* ------------------------------------------------------------------ */
 /* Turnierliste                                                        */
@@ -706,8 +747,8 @@ function save() {
       renderRows(); renderList();
       var host = $('msgs'); host.textContent = '';
       host.appendChild(msg('ok', res.written + ' Zeilen gespeichert' +
-        (res.replaced ? ', ' + res.replaced + ' ersetzt' : '') +
-        '. Die Seite aktualisiert sich in der Nacht — oder sofort über „Run workflow" auf GitHub.'));
+        (res.replaced ? ', ' + res.replaced + ' ersetzt' : '') + '.'));
+      host.appendChild(buildMsg(res.build));
       var c = res.created || { players: [], decks: [] };
       if (c.players.length || c.decks.length) {
         var parts = [];
@@ -726,11 +767,12 @@ function remove() {
   if (!date) return;
   if (!window.confirm('Turnier vom ' + deDate(date) + ' mit allen Zeilen löschen?')) return;
   setBusy(true, 'Lösche …');
-  API.remove(date).then(function () {
+  API.remove(date).then(function (res) {
     return API.bootstrap().then(function (b) {
       applyBootstrap(b); reset(); setBusy(false);
       var host = $('msgs'); host.textContent = '';
       host.appendChild(msg('ok', 'Turnier vom ' + deDate(date) + ' gelöscht.'));
+      host.appendChild(buildMsg(res && res.build));
     });
   }).catch(fail);
 }

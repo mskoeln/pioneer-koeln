@@ -24,6 +24,21 @@ var ALLOWED_USERS = [];
 
 var MAX_ROWS_PER_TOURNAMENT = 64;
 
+/*
+ * Optional: nach dem Speichern die GitHub-Action anstossen, damit die
+ * veroeffentlichte Seite nicht bis zur Nacht wartet.
+ *
+ * Voraussetzung: ein Token in den Skript-Eigenschaften unter GITHUB_TOKEN
+ * (Projekteinstellungen -> Skripteigenschaften). Fehlt er, wird nichts
+ * angestossen und das Speichern funktioniert unveraendert.
+ *
+ * Der naechtliche Lauf bleibt als Netz bestehen: schlaegt der Anstoss fehl,
+ * etwa weil der Token abgelaufen ist, zieht die Nacht es nach.
+ */
+var GITHUB_REPO = 'mskoeln/pioneer-koeln';
+var GITHUB_WORKFLOW = 'update.yml';
+var GITHUB_BRANCH = 'main';
+
 
 /* ------------------------------------------------------------------ */
 /* Einstieg                                                            */
@@ -170,6 +185,38 @@ function validate_(date, entries) {
     if ((e.w + e.l + e.t) <= 0) errors.push(pos + 'keine Partien eingetragen.');
   });
   return errors;
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Seite sofort neu bauen lassen                                       */
+/* ------------------------------------------------------------------ */
+
+function triggerWorkflow_() {
+  var token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
+  if (!token) return { triggered: false, reason: 'kein Token hinterlegt' };
+
+  var url = 'https://api.github.com/repos/' + GITHUB_REPO +
+            '/actions/workflows/' + GITHUB_WORKFLOW + '/dispatches';
+  try {
+    var res = UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      headers: {
+        Authorization: 'Bearer ' + token,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28'
+      },
+      payload: JSON.stringify({ ref: GITHUB_BRANCH }),
+      muteHttpExceptions: true
+    });
+    var code = res.getResponseCode();
+    if (code === 204) return { triggered: true };
+    return { triggered: false, reason: 'GitHub antwortete ' + code + ': ' +
+             String(res.getContentText()).slice(0, 200) };
+  } catch (e) {
+    return { triggered: false, reason: String(e).slice(0, 200) };
+  }
 }
 
 
@@ -340,7 +387,8 @@ function saveTournament(payload) {
       ok: true,
       written: values.length,
       replaced: replaced,
-      created: created
+      created: created,
+      build: triggerWorkflow_()
     };
   } finally {
     lock.releaseLock();
@@ -355,7 +403,7 @@ function deleteTournament(date) {
   }
   try {
     var removed = removeDate_(sheet_(), String(date));
-    return { ok: true, removed: removed };
+    return { ok: true, removed: removed, build: triggerWorkflow_() };
   } finally {
     lock.releaseLock();
   }
