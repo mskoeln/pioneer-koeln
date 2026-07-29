@@ -14,6 +14,10 @@
     --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4;
     --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
     --n1:#898781; --n2:#b3b1aa;
+    /* Sequenzieller Blauverlauf für die Heatmap: ein Farbton, hell nach dunkel.
+       q1 liegt nahe der Fläche, damit „fast nichts" zurücktritt. */
+    --q1:#cde2fb; --q2:#9ec5f4; --q3:#6da7ec; --q4:#3987e5;
+    --q5:#256abf; --q6:#184f95; --q7:#0d366b;
     --pos:#2a78d6; --neg:#e34948; --mid:#f0efec;
     --good:#006300;
     --r:10px;
@@ -28,6 +32,9 @@
       --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
       --s6:#008300; --s7:#9085e9; --s8:#e66767;
       --n1:#898781; --n2:#5f5e5a;
+      /* Auf dunkler Fläche umgekehrt gestuft: „fast nichts" bleibt dunkel. */
+      --q1:#0d366b; --q2:#184f95; --q3:#256abf; --q4:#3987e5;
+      --q5:#6da7ec; --q6:#9ec5f4; --q7:#cde2fb;
       --pos:#3987e5; --neg:#e66767; --mid:#383835;
       --good:#0ca30c;
     }
@@ -41,6 +48,8 @@
     --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
     --s6:#008300; --s7:#9085e9; --s8:#e66767;
     --n1:#898781; --n2:#5f5e5a;
+    --q1:#0d366b; --q2:#184f95; --q3:#256abf; --q4:#3987e5;
+    --q5:#6da7ec; --q6:#9ec5f4; --q7:#cde2fb;
     --pos:#3987e5; --neg:#e66767; --mid:#383835;
     --good:#0ca30c;
   }
@@ -181,6 +190,47 @@
   .leader{stroke:var(--axis); stroke-width:1}
   .crosshair{stroke:var(--axis); stroke-width:1; pointer-events:none}
   .hitband{fill:transparent; cursor:crosshair}
+
+  /* ---------- heatmap ---------- */
+  .heatwrap{overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px}
+  .heat{display:grid; gap:2px; min-width:min-content}
+  .heat .hh{
+    font-size:11px; color:var(--muted); text-align:center; padding:0 2px 4px;
+    white-space:nowrap; font-variant-numeric:tabular-nums;
+  }
+  .heat .hh.dim{opacity:.45}
+  .heat .hr{
+    font-size:12.5px; color:var(--ink-2); text-align:right; padding-right:8px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:190px;
+    align-self:center;
+  }
+  .heat .hc{
+    height:22px; border-radius:3px; background:var(--wash);
+    cursor:default; min-width:26px;
+  }
+  .heat .hc.v1{background:var(--q1)} .heat .hc.v2{background:var(--q2)}
+  .heat .hc.v3{background:var(--q3)} .heat .hc.v4{background:var(--q4)}
+  .heat .hc.v5{background:var(--q5)} .heat .hc.v6{background:var(--q6)}
+  .heat .hc.v7{background:var(--q7)}
+  /* Kein Turnier in dieser Scheibe — von „gespielt, aber selten" unterscheidbar */
+  .heat .hc.none{
+    background:repeating-linear-gradient(45deg,
+      transparent 0 3px, var(--border) 3px 4px);
+  }
+  .heat .hc:hover{outline:2px solid var(--ink); outline-offset:1px}
+
+  .heatscale{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 14px}
+  .heatscale .lbl{font-size:12px; color:var(--muted)}
+  .heatscale .ramp{display:flex; gap:2px}
+  .heatscale .ramp i{width:22px; height:11px; border-radius:2px; display:block}
+  .heatscale .note{
+    display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted);
+    margin-left:4px;
+  }
+  .heatscale .note i{
+    width:14px; height:11px; border-radius:2px;
+    background:repeating-linear-gradient(45deg, transparent 0 3px, var(--border) 3px 4px);
+  }
 
   /* ---------- tooltip ---------- */
   .tip{
@@ -346,11 +396,23 @@
   <div class="card">
     <div class="cardhead">
       <h3 id="trend-title">Anteil der Meta</h3>
-      <button class="toggle" id="trend-toggle" type="button" aria-expanded="false">Tabelle anzeigen</button>
+      <div class="btnrow">
+        <button class="toggle" id="mode-toggle" type="button" aria-pressed="false">Heatmap</button>
+        <button class="toggle" id="trend-toggle" type="button" aria-expanded="false">Tabelle anzeigen</button>
+      </div>
     </div>
     <p class="chint" id="trendhint"></p>
-    <div class="legend" id="trend-legend"></div>
-    <div class="chartbox" id="trend-box"><svg class="chart" id="trend-svg" role="img" aria-label="Meta-Anteil der Top-5-Decks je Jahr"></svg></div>
+
+    <div id="view-kurve">
+      <div class="legend" id="trend-legend"></div>
+      <div class="chartbox" id="trend-box"><svg class="chart" id="trend-svg" role="img" aria-label="Meta-Anteil der führenden Decks im Zeitverlauf"></svg></div>
+    </div>
+
+    <div id="view-heat" class="hidden">
+      <div class="heatscale" id="heat-scale"></div>
+      <div class="heatwrap"><div class="heat" id="heat"></div></div>
+    </div>
+
     <div class="tablewrap hidden" id="trend-table-wrap" style="margin-top:16px">
       <table id="trend-table"><thead></thead><tbody></tbody></table>
     </div>
@@ -556,7 +618,9 @@ function bucketsFor(sl){
           pick:function(r){ return r.d.slice(0,4); }};
 }
 
-function buildTrend(names, sl){
+/* Aggregat je Zeitscheibe: Gesamtspiele und Spiele je Deck. Gemeinsame
+   Grundlage für die Kurve und die Heatmap. */
+function bucketAgg(sl){
   var b = bucketsFor(sl);
   var agg = {};
   sl.recs.forEach(function(r){
@@ -565,17 +629,67 @@ function buildTrend(names, sl){
     a.total += r.g;
     a.byDeck[r.k] = (a.byDeck[r.k] || 0) + r.g;
   });
+  return {
+    unit: b.unit,
+    list: b.list.map(function(it){
+      var a = agg[it.key] || {total:0, byDeck:{}};
+      return {key:it.key, label:it.label, full:it.full,
+              total:a.total, hasData:a.total > 0, byDeck:a.byDeck};
+    })
+  };
+}
+
+function buildTrend(names, sl){
+  var b = bucketAgg(sl);
   var rows = b.list.map(function(it){
-    var a = agg[it.key];
     return {
       key: it.key, label: it.label, full: it.full,
-      total: a ? a.total : 0,
-      hasData: !!(a && a.total),
-      vals: names.map(function(n){ return (a && a.total) ? (a.byDeck[n] || 0)/a.total : 0; }),
-      games: names.map(function(n){ return a ? (a.byDeck[n] || 0) : 0; })
+      total: it.total, hasData: it.hasData,
+      vals: names.map(function(n){ return it.total ? (it.byDeck[n] || 0)/it.total : 0; }),
+      games: names.map(function(n){ return it.byDeck[n] || 0; })
     };
   });
   return {rows:rows, unit:b.unit};
+}
+
+/* Heatmap: je Zeitscheibe die HEAT_TOP stärksten Decks bestimmen und die
+   Vereinigung dieser Mengen als Zeilen zeigen. Damit erscheint auch ein Deck,
+   das nur in einem einzigen Monat vorne lag — genau das kann die Kurve nicht,
+   weil sie eine feste Deckauswahl über den ganzen Zeitraum braucht. */
+function buildHeat(sl, n){
+  var b = bucketAgg(sl);
+  var seen = {}, order = [];
+  b.list.forEach(function(it){
+    if(!it.total) return;
+    Object.keys(it.byDeck)
+      .sort(function(a, c){
+        return it.byDeck[c] - it.byDeck[a] || a.localeCompare(c, "de");
+      })
+      .slice(0, n)
+      .forEach(function(name){
+        if(!seen[name]){ seen[name] = true; order.push(name); }
+      });
+  });
+
+  /* Zeilen nach Anteil im gesamten Zeitraum ordnen: stabil und lesbar, und
+     die Dauerbrenner stehen oben. */
+  var games = {}, all = 0;
+  sl.recs.forEach(function(r){ games[r.k] = (games[r.k] || 0) + r.g; all += r.g; });
+  order.sort(function(a, c){
+    return (games[c] || 0) - (games[a] || 0) || a.localeCompare(c, "de");
+  });
+
+  var max = 0;
+  b.list.forEach(function(it){
+    if(!it.total) return;
+    order.forEach(function(nm){
+      var v = (it.byDeck[nm] || 0) / it.total;
+      if(v > max) max = v;
+    });
+  });
+
+  return {names:order, buckets:b.list, unit:b.unit, max:max,
+          periodGames:games, periodTotal:all};
 }
 
 /* ============================ Tooltip ============================ */
@@ -1265,6 +1379,112 @@ function drawTrend(){
   hit.addEventListener("pointerleave", function(){ ch.setAttribute("opacity", 0); tipHide(); });
 }
 
+/* ============================ Heatmap ============================ */
+var HEAT_TOP = 5;
+var HEAT_BINS = 7;          /* mehr Farbklassen als sieben verschwimmen */
+var heat = null;
+var trendMode = "kurve";    /* "kurve" | "heat" */
+
+function heatBin(v, max){
+  if(v <= 0 || max <= 0) return 0;
+  return Math.max(1, Math.min(HEAT_BINS, Math.ceil(v / max * HEAT_BINS)));
+}
+
+function renderHeat(){
+  var host = document.getElementById("heat");
+  var scale = document.getElementById("heat-scale");
+  host.textContent = ""; scale.textContent = "";
+  if(!heat || !heat.names.length || !heat.max){
+    host.appendChild(msgBox("Keine Daten im Zeitraum."));
+    return;
+  }
+
+  host.style.gridTemplateColumns = "minmax(96px,max-content) repeat(" +
+    heat.buckets.length + ", minmax(26px,1fr))";
+
+  host.appendChild(document.createElement("div"));      /* leere Ecke */
+  heat.buckets.forEach(function(b){
+    var h = document.createElement("div");
+    h.className = "hh" + (b.hasData ? "" : " dim");
+    h.textContent = b.label;
+    h.title = b.full + (b.hasData ? " · " + nf(b.total) + " Spiele" : " · keine Turniere");
+    host.appendChild(h);
+  });
+
+  heat.names.forEach(function(name){
+    var lab = document.createElement("div");
+    lab.className = "hr";
+    lab.textContent = name;
+    lab.title = name + " · " + pct(heat.periodTotal ?
+      (heat.periodGames[name] || 0)/heat.periodTotal : 0, 1) + " im Zeitraum";
+    host.appendChild(lab);
+
+    heat.buckets.forEach(function(b){
+      var g = b.byDeck[name] || 0;
+      var v = b.total ? g / b.total : 0;
+      var cell = document.createElement("div");
+      cell.className = "hc" + (!b.hasData ? " none" : (v > 0 ? " v" + heatBin(v, heat.max) : ""));
+      /* Werte am Element, damit ein einziger Handler am Behälter genügt —
+         bei bis zu einigen hundert Zellen sind Einzel-Handler zu teuer. */
+      cell.dataset.deck = name;
+      cell.dataset.bucket = b.full;
+      cell.dataset.has = b.hasData ? "1" : "";
+      cell.dataset.games = String(g);
+      cell.dataset.total = String(b.total);
+      cell.dataset.share = pct(v, 1);
+      host.appendChild(cell);
+    });
+  });
+
+  /* Farbskala. Bei sequenzieller Färbung ist sie Pflicht — ohne sie ist der
+     Farbwert nicht lesbar. */
+  var l1 = document.createElement("span");
+  l1.className = "lbl"; l1.textContent = "Anteil je " + heat.unit + ":  0 %";
+  scale.appendChild(l1);
+  var ramp = document.createElement("span"); ramp.className = "ramp";
+  for(var i = 1; i <= HEAT_BINS; i++){
+    var sw = document.createElement("i");
+    sw.style.background = "var(--q" + i + ")";
+    sw.title = "bis " + pct(heat.max * i / HEAT_BINS, 1);
+    ramp.appendChild(sw);
+  }
+  scale.appendChild(ramp);
+  var l2 = document.createElement("span");
+  l2.className = "lbl"; l2.textContent = pct(heat.max, 1);
+  scale.appendChild(l2);
+  var note = document.createElement("span");
+  note.className = "note";
+  var ni = document.createElement("i"); note.appendChild(ni);
+  note.appendChild(document.createTextNode("kein Turnier"));
+  scale.appendChild(note);
+}
+
+function msgBox(text){
+  var d = document.createElement("div");
+  d.className = "empty";
+  d.textContent = text;
+  return d;
+}
+
+/* Ein Handler für alle Zellen (Delegation) */
+(function(){
+  var host = document.getElementById("heat");
+  host.addEventListener("pointermove", function(ev){
+    var c = ev.target.closest ? ev.target.closest(".hc") : null;
+    if(!c){ tipHide(); return; }
+    var d = c.dataset;
+    if(!d.has){
+      tipShow(ev.clientX, ev.clientY, d.deck, [], d.bucket + " — keine Turniere");
+      return;
+    }
+    tipShow(ev.clientX, ev.clientY, d.deck, [
+      {name:"Anteil", value:d.share},
+      {name:"Spiele", value:nf(+d.games) + " von " + nf(+d.total)}
+    ], d.bucket);
+  });
+  host.addEventListener("pointerleave", tipHide);
+})();
+
 function renderTrendLegend(){
   var TOP5 = trend.names;
   var host = document.getElementById("trend-legend");
@@ -1279,42 +1499,62 @@ function renderTrendLegend(){
   });
 }
 
+/* Tabellenansicht der jeweils aktiven Darstellung — die barrierefreie
+   Entsprechung, in der jeder Wert auch ohne Farbe und ohne Zeigegerät lesbar
+   ist. Bei der Kurve trägt jede Zeile ihren Serienpunkt, bei der Heatmap nicht:
+   dort steht die Farbe für die Größe, nicht für die Deckidentität. */
 function renderTrendTable(){
-  var TREND = trend.rows, TOP5 = trend.names;
+  var isHeat = trendMode === "heat";
+  var names = isHeat ? (heat ? heat.names : []) : trend.names;
+  var buckets = isHeat ? (heat ? heat.buckets : []) : trend.rows;
+  var valueOf = isHeat
+    ? function(name, bi){
+        var b = buckets[bi];
+        return b.total ? (b.byDeck[name] || 0)/b.total : 0;
+      }
+    : function(name, bi){ return buckets[bi].vals[names.indexOf(name)]; };
+
   var tbl = document.getElementById("trend-table");
   var thead = tbl.querySelector("thead"), tbody = tbl.querySelector("tbody");
   thead.textContent = ""; tbody.textContent = "";
+
   var tr = document.createElement("tr");
-  var th0 = document.createElement("th"); th0.textContent = "Deck"; th0.style.cursor = "default";
+  var th0 = document.createElement("th");
+  th0.textContent = "Deck"; th0.style.cursor = "default";
   tr.appendChild(th0);
-  TREND.forEach(function(row){
-    var th = document.createElement("th"); th.textContent = row.label; th.style.cursor = "default";
-    th.title = row.full;
+  buckets.forEach(function(b){
+    var th = document.createElement("th");
+    th.textContent = b.label; th.title = b.full; th.style.cursor = "default";
     tr.appendChild(th);
   });
   thead.appendChild(tr);
-  TOP5.forEach(function(name, si){
+
+  names.forEach(function(name, si){
     var r = document.createElement("tr");
     var td = document.createElement("td");
-    var dot = document.createElement("span"); dot.className = "dot";
-    dot.style.background = seriesColor(si);
-    td.appendChild(dot); td.appendChild(document.createTextNode(name));
+    if(!isHeat){
+      var dot = document.createElement("span");
+      dot.className = "dot"; dot.style.background = seriesColor(si);
+      td.appendChild(dot);
+    }
+    td.appendChild(document.createTextNode(name));
     r.appendChild(td);
-    TREND.forEach(function(row){
+    buckets.forEach(function(b, bi){
       var c = document.createElement("td");
-      c.textContent = row.hasData ? pct(row.vals[si], 1) : "–";
-      if(!row.hasData) c.style.color = "var(--muted)";
+      c.textContent = b.hasData ? pct(valueOf(name, bi), 1) : "–";
+      if(!b.hasData) c.style.color = "var(--muted)";
       r.appendChild(c);
     });
     tbody.appendChild(r);
   });
+
   var tr2 = document.createElement("tr");
   var td2 = document.createElement("td");
   td2.textContent = "Spiele gesamt"; td2.style.color = "var(--muted)";
   tr2.appendChild(td2);
-  TREND.forEach(function(row){
+  buckets.forEach(function(b){
     var c = document.createElement("td");
-    c.textContent = row.hasData ? nf(row.total) : "–";
+    c.textContent = b.hasData ? nf(b.total) : "–";
     c.style.color = "var(--muted)";
     tr2.appendChild(c);
   });
@@ -1374,9 +1614,11 @@ function render(){
   var tb = buildTrend(trend.names, sl);
   trend.rows = tb.rows;
   trend.unit = tb.unit;
+  heat = buildHeat(sl, HEAT_TOP);
   renderTrendLegend();
-  renderTrendTable();
   drawTrend();
+  renderHeat();
+  applyTrendMode();
 
   var scope = sl.label;
   document.getElementById("metanote").textContent =
@@ -1388,15 +1630,40 @@ function render(){
     nf(sl.recs.length) + " Teilnahmen.";
   document.getElementById("tournote").textContent =
     "Zeitraum: " + scope + ". " + nf(sl.recs.length) + " Einzelergebnisse.";
+  updateTrendTexts(scope);
+}
+
+/* Überschrift, Einleitung und Hinweis richten sich nach der aktiven Ansicht:
+   die Kurve verfolgt feste Decks, die Heatmap den Wechsel an der Spitze. */
+var trendScope = "";
+function updateTrendTexts(scope){
+  if(scope !== undefined) trendScope = scope;
   var dativ = {"Jahr":"Jahren", "Monat":"Monaten", "Turniertag":"Turniertagen"}[trend.unit];
   var genitiv = {"Jahr":"Jahres", "Monat":"Monats", "Turniertag":"Turniertags"}[trend.unit];
   var withData = trend.rows.filter(function(r){ return r.hasData; }).length;
-  document.getElementById("trendnote").textContent =
-    "Meta-Anteil der " + trend.names.length + " meistgespielten Decks im Zeitraum " + scope +
-    ", aufgeschlüsselt nach " + dativ + ".";
-  document.getElementById("trend-title").textContent = "Anteil der Meta je " + trend.unit;
-  document.getElementById("trendhint").textContent =
-    "Anteil = Spiele des Decks ÷ alle Spiele des " + genitiv + ". " +
+  var isHeat = trendMode === "heat";
+
+  document.getElementById("trendnote").textContent = isHeat
+    ? "Die jeweils " + HEAT_TOP + " stärksten Decks pro " + trend.unit + " im Zeitraum " +
+      trendScope + " — dadurch erscheinen auch Decks, die nur in einer einzigen " +
+      "Zeitscheibe vorne lagen. " + (heat ? heat.names.length : 0) + " Decks insgesamt."
+    : "Meta-Anteil der " + trend.names.length + " meistgespielten Decks im Zeitraum " +
+      trendScope + ", aufgeschlüsselt nach " + dativ + ".";
+
+  document.getElementById("trend-title").textContent = isHeat
+    ? "Führende Decks je " + trend.unit
+    : "Anteil der Meta je " + trend.unit;
+
+  var base = "Anteil = Spiele des Decks ÷ alle Spiele des " + genitiv + ". ";
+  if(isHeat){
+    var thin = trend.unit !== "Jahr";
+    document.getElementById("trendhint").textContent = base +
+      "Je dunkler, desto größer der Anteil. Zeilen nach Anteil im gesamten Zeitraum sortiert." +
+      (thin ? " Achtung: pro " + trend.unit + " liegen oft nur wenige Spiele vor, " +
+              "eine Rangfolge an der Spitze ist dann kaum belastbar." : "");
+    return;
+  }
+  document.getElementById("trendhint").textContent = base +
     (trend.unit === "Monat"
       ? withData + " von 12 Monaten mit Turnieren; turnierfreie Monate lassen die Linie aussetzen."
       : trend.unit === "Turniertag"
@@ -1404,6 +1671,17 @@ function render(){
           + (withData <= 4 ? " Die Serien sind leicht seitlich versetzt gezeichnet, damit"
                            + " gleiche Werte unterscheidbar bleiben." : "")
         : "Das laufende Jahr ist ein Teiljahr.");
+}
+
+function applyTrendMode(){
+  var isHeat = trendMode === "heat";
+  document.getElementById("view-kurve").classList.toggle("hidden", isHeat);
+  document.getElementById("view-heat").classList.toggle("hidden", !isHeat);
+  var btn = document.getElementById("mode-toggle");
+  btn.setAttribute("aria-pressed", String(isHeat));
+  btn.textContent = isHeat ? "Kurve" : "Heatmap";
+  renderTrendTable();
+  updateTrendTexts();
 }
 
 /* Filter-Pills, in drei sichtbar getrennte Gruppen */
@@ -1487,6 +1765,17 @@ function render(){
     shareMode = (shareMode === "pie") ? "bars" : "pie";
     applyShareMode();
     if(shareMode === "pie") renderPie(deckData, shareTotal);
+  });
+})();
+
+/* Kurve <-> Heatmap umschalten. Die Kurve zeichnet in ein SVG und braucht die
+   Containerbreite, ist im verborgenen Zustand also neu zu zeichnen. */
+(function(){
+  var btn = document.getElementById("mode-toggle");
+  btn.addEventListener("click", function(){
+    trendMode = (trendMode === "heat") ? "kurve" : "heat";
+    applyTrendMode();
+    if(trendMode === "kurve") drawTrend();
   });
 })();
 
