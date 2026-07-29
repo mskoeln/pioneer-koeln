@@ -280,11 +280,11 @@
   .dot{display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:7px; vertical-align:-1px}
 
   /* ---------- Magic-Farbpunkte ---------- */
-  /* Feste Slotbreite und rechts ausgerichtet: die Decknamen fangen dadurch alle
-     an derselben Stelle an, und die Punkte stehen stets direkt am Namen. */
+  /* Stehen rechts neben dem Namen und wachsen mit der Farbzahl. Die Namen
+     beginnen ohnehin alle an derselben Stelle, weil die Spalte linksbündig ist. */
   .pips{
-    display:inline-flex; justify-content:flex-end; gap:2px;
-    width:52px; margin-right:8px; vertical-align:-1px; flex:none;
+    display:inline-flex; gap:2px;
+    margin-left:8px; vertical-align:-1px; flex:none;
   }
   .pip{
     width:9px; height:9px; border-radius:50%; flex:none; box-sizing:border-box;
@@ -300,8 +300,8 @@
     content:""; width:9px; height:9px; border-radius:50%; box-sizing:border-box;
     border:1px dashed var(--axis);
   }
-  /* Platz für Punkte plus Name, damit der Name nicht unter die Punkte rutscht */
-  #deck-table td:first-child{min-width:240px}
+  /* Name und Punkte sollen zusammenbleiben, statt die Punkte umbrechen zu lassen */
+  #deck-table td.rank + td{white-space:nowrap}
   .medal{font-size:12px}
   .tscroll{max-height:520px; overflow-y:auto}
   .search{
@@ -1273,8 +1273,8 @@ var deckTable = makeTable({
   match: function(r, q){ return r.name.toLowerCase().indexOf(q) >= 0; },
   cols: [
     {key:"name", label:"Deck", asc:true, cell:function(td,r){
-      td.appendChild(colorPips(r.name));
       td.appendChild(document.createTextNode(r.name));
+      td.appendChild(colorPips(r.name));
     }},
     {key:"share", label:"Anteil", cell:function(td,r){ txt(td, pct(r.share,2)); }},
     {key:"g", label:"Spiele", cell:function(td,r){ txt(td, nf(r.g)); }},
