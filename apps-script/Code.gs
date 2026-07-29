@@ -215,8 +215,13 @@ function neubauTesten() {
      fehlgeschlagener Anstoss niemals das Speichern verhindert. */
   var probe = UrlFetchApp.fetch('https://api.github.com/zen',
                                 { muteHttpExceptions: true });
-  Logger.log('Externe Verbindungen sind erlaubt. GitHub antwortet mit '
-             + probe.getResponseCode() + '.');
+  /* Der Antwortcode ist hier ohne Bedeutung. Unangemeldete Anfragen drosselt
+     GitHub pro IP, und Googles Server sind dauernd am Kontingent — 403 ist
+     also normal. Aussagekraeftig ist nur, dass keine Berechtigungssperre kam;
+     sonst waere die Zeile darueber nie erreicht worden. */
+  Logger.log('Externe Verbindungen sind erlaubt (Berechtigung liegt vor). '
+             + 'Antwort der unangemeldeten Probe: ' + probe.getResponseCode()
+             + ' — ohne Bedeutung.');
 
   var r = triggerWorkflow_();
   Logger.log(r.triggered ? 'Neubau angestossen. Seite ist in etwa einer Minute aktuell.'

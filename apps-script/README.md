@@ -143,6 +143,24 @@ verhindert. Ein **gefangener** Berechtigungsfehler unterdrückt aber die
 Nachfrage von Google. `neubauTesten` ruft `UrlFetchApp` deshalb einmal
 ungeschützt auf, damit die Ausnahme durchschlägt und der Dialog erscheint.
 
+Erwartetes Protokoll nach erfolgreicher Einrichtung:
+
+```
+GITHUB_TOKEN gefunden (93 Zeichen).
+Externe Verbindungen sind erlaubt (Berechtigung liegt vor).
+  Antwort der unangemeldeten Probe: 403 — ohne Bedeutung.
+Neubau angestossen. Seite ist in etwa einer Minute aktuell.
+```
+
+Die **403 in der Mitte ist normal**: unangemeldete Anfragen drosselt GitHub pro
+IP-Adresse, und Googles Server teilen sich diese mit vielen anderen Skripten.
+Aussagekräftig ist allein, dass keine Berechtigungssperre kam. Der eigentliche
+Aufruf danach läuft mit dem Token und hat ein eigenes Kontingent.
+
+Fehlercodes in der **letzten** Zeile sind dagegen echte Befunde: **403** heißt
+fehlende Token-Berechtigung *Actions: Read and write*, **404** falsches
+Repository oder kein Token-Zugriff darauf.
+
 Ein erneutes Bereitstellen ist dafür nicht nötig; die Freigabe hängt am Konto,
 nicht an der Bereitstellung.
 
