@@ -137,6 +137,12 @@ Nachholen: im Editor oben die Funktion **`neubauTesten`** auswählen und
 Funktion schreibt anschließend ins Ausführungsprotokoll, ob Token und
 Repository stimmen, und stößt bei Erfolg einen echten Neubau an.
 
+Der Grund, warum es dafür eine eigene Funktion braucht: `triggerWorkflow_()`
+fängt jeden Fehler ab, damit ein gescheiterter Anstoß niemals das Speichern
+verhindert. Ein **gefangener** Berechtigungsfehler unterdrückt aber die
+Nachfrage von Google. `neubauTesten` ruft `UrlFetchApp` deshalb einmal
+ungeschützt auf, damit die Ausnahme durchschlägt und der Dialog erscheint.
+
 Ein erneutes Bereitstellen ist dafür nicht nötig; die Freigabe hängt am Konto,
 nicht an der Bereitstellung.
 

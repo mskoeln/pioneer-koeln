@@ -207,6 +207,17 @@ function neubauTesten() {
   var token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
   Logger.log(token ? 'GITHUB_TOKEN gefunden (' + token.length + ' Zeichen).'
                    : 'GITHUB_TOKEN fehlt in den Skripteigenschaften.');
+
+  /* Diese Zeile ist bewusst NICHT in try/catch gefasst. Google zeigt den
+     Berechtigungsdialog nur, wenn die Ausnahme nach oben durchschlaegt — ein
+     gefangener Fehler verschluckt die Nachfrage. Genau daran scheiterte der
+     erste Versuch: triggerWorkflow_() faengt alles ab, damit ein
+     fehlgeschlagener Anstoss niemals das Speichern verhindert. */
+  var probe = UrlFetchApp.fetch('https://api.github.com/zen',
+                                { muteHttpExceptions: true });
+  Logger.log('Externe Verbindungen sind erlaubt. GitHub antwortet mit '
+             + probe.getResponseCode() + '.');
+
   var r = triggerWorkflow_();
   Logger.log(r.triggered ? 'Neubau angestossen. Seite ist in etwa einer Minute aktuell.'
                          : 'Nicht angestossen: ' + r.reason);
