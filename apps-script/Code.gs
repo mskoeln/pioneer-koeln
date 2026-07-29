@@ -224,7 +224,13 @@ function saveTournament(payload) {
     replaced += removeDate_(sh, date);
 
     var at = insertionRow_(date);
-    sh.insertRowsBefore(at, entries.length);
+    /* insertRowsBefore verlangt eine existierende Zeile. Liegt die
+       Einfügestelle hinter dem Blattende, wird zuerst angehängt. */
+    if (at > sh.getMaxRows()) {
+      sh.insertRowsAfter(sh.getMaxRows(), at - sh.getMaxRows() + entries.length);
+    } else {
+      sh.insertRowsBefore(at, entries.length);
+    }
 
     var values = entries.map(function (e, i) {
       var p = date.split('-');
