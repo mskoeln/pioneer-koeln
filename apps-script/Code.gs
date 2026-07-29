@@ -192,6 +192,27 @@ function validate_(date, entries) {
 /* Seite sofort neu bauen lassen                                       */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Einmal im Editor ausfuehren (Funktion waehlen -> Ausfuehren).
+ *
+ * Zwei Zwecke: Google fragt dabei die fehlende Berechtigung fuer externe
+ * Verbindungen ab (script.external_request) — die wird nur beim Zustimmen
+ * vergeben, und beim ersten Zustimmen gab es UrlFetchApp hier noch nicht.
+ * Ausserdem prueft die Funktion sofort, ob Token und Repository stimmen.
+ *
+ * Achtung: ein erfolgreicher Aufruf stoesst tatsaechlich einen Neubau der
+ * veroeffentlichten Seite an. Das ist harmlos.
+ */
+function neubauTesten() {
+  var token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
+  Logger.log(token ? 'GITHUB_TOKEN gefunden (' + token.length + ' Zeichen).'
+                   : 'GITHUB_TOKEN fehlt in den Skripteigenschaften.');
+  var r = triggerWorkflow_();
+  Logger.log(r.triggered ? 'Neubau angestossen. Seite ist in etwa einer Minute aktuell.'
+                         : 'Nicht angestossen: ' + r.reason);
+  return r;
+}
+
 function triggerWorkflow_() {
   var token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
   if (!token) return { triggered: false, reason: 'kein Token hinterlegt' };

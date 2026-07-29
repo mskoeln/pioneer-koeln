@@ -124,12 +124,31 @@ direkt an — dann ist die Seite nach etwa einer Minute aktuell.
 Der Token liegt damit auf Googles Servern und wird nie an den Browser
 ausgeliefert. Ins Repository gehört er nicht.
 
-**3 · Erneut bereitstellen.** Der erste Aufruf braucht die Berechtigung für
-externe Verbindungen — Google fragt danach.
+**3 · Berechtigung nachholen.** Apps Script vergibt Berechtigungen anhand des
+Codes, der beim Zustimmen vorlag. Wurde das Projekt vor dem Einbau von
+`UrlFetchApp` freigegeben, fehlt die Berechtigung für externe Verbindungen, und
+der Anstoß scheitert mit:
+
+> Sie haben nicht die erforderliche Berechtigung, UrlFetchApp.fetch anzurufen.
+> Erforderliche Berechtigungen: `…/auth/script.external_request`
+
+Nachholen: im Editor oben die Funktion **`neubauTesten`** auswählen und
+**Ausführen**. Google fragt dann die fehlende Berechtigung ab — bestätigen. Die
+Funktion schreibt anschließend ins Ausführungsprotokoll, ob Token und
+Repository stimmen, und stößt bei Erfolg einen echten Neubau an.
+
+Ein erneutes Bereitstellen ist dafür nicht nötig; die Freigabe hängt am Konto,
+nicht an der Bereitstellung.
 
 Danach meldet das Formular nach dem Speichern „Die öffentliche Seite wird jetzt
 neu gebaut". Schlägt der Anstoß fehl, etwa bei abgelaufenem Token, erscheint ein
 Hinweis und der nächtliche Lauf zieht es nach.
+
+**Wenn die Abfrage ausbleibt:** die Berechtigungen lassen sich auch fest
+deklarieren. In den *Projekteinstellungen* **„appsscript.json-Manifestdatei im
+Editor anzeigen"** einschalten und den Inhalt von
+[`appsscript.json`](appsscript.json) übernehmen. Beim nächsten Ausführen fragt
+Google dann nach allen dort genannten Berechtigungen.
 
 **Den nächtlichen Lauf würde ich behalten.** Er kostet nichts und ist das Netz
 für den Fall, dass ein Anstoß scheitert oder jemand die Tabelle direkt bearbeitet.
