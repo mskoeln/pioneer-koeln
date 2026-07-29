@@ -18,6 +18,10 @@
        q1 liegt nahe der Fläche, damit „fast nichts" zurücktritt. */
     --q1:#cde2fb; --q2:#9ec5f4; --q3:#6da7ec; --q4:#3987e5;
     --q5:#256abf; --q6:#184f95; --q7:#0d366b;
+    /* Magic-Farbpunkte. Rot und Grün stehen bewusst weit auseinander in der
+       Helligkeit — bei Rot-Grün-Sehschwäche trägt nur noch der Unterschied. */
+    --cW:#fbf6d9; --cU:#2a78d6; --cB:#221d1a; --cR:#e05252; --cG:#0d5228;
+    --pipring:rgba(11,11,11,.38);
     --pos:#2a78d6; --neg:#e34948; --mid:#f0efec;
     --good:#006300;
     --r:10px;
@@ -35,6 +39,8 @@
       /* Auf dunkler Fläche umgekehrt gestuft: „fast nichts" bleibt dunkel. */
       --q1:#0d366b; --q2:#184f95; --q3:#256abf; --q4:#3987e5;
       --q5:#6da7ec; --q6:#9ec5f4; --q7:#cde2fb;
+      --cW:#f7f2dc; --cU:#4a9fd8; --cB:#6f645c; --cR:#f28f8f; --cG:#2f8f52;
+      --pipring:rgba(255,255,255,.38);
       --pos:#3987e5; --neg:#e66767; --mid:#383835;
       --good:#0ca30c;
     }
@@ -50,6 +56,8 @@
     --n1:#898781; --n2:#5f5e5a;
     --q1:#0d366b; --q2:#184f95; --q3:#256abf; --q4:#3987e5;
     --q5:#6da7ec; --q6:#9ec5f4; --q7:#cde2fb;
+    --cW:#f7f2dc; --cU:#4a9fd8; --cB:#6f645c; --cR:#f28f8f; --cG:#2f8f52;
+    --pipring:rgba(255,255,255,.38);
     --pos:#3987e5; --neg:#e66767; --mid:#383835;
     --good:#0ca30c;
   }
@@ -253,6 +261,9 @@
   caption{text-align:left; color:var(--muted); font-size:12px; padding-bottom:8px}
   th,td{padding:7px 10px; text-align:right; white-space:nowrap}
   th:first-child,td:first-child{text-align:left; white-space:normal; min-width:130px}
+  /* Tabellen mit Rangspalte: die Namensspalte ist dort die zweite Zelle. Ohne
+     diese Regel erbt sie das rechtsbündige Format der Zahlenspalten. */
+  thead th.rank + th, tbody td.rank + td{text-align:left; white-space:normal; min-width:130px}
   thead th{
     position:sticky; top:0; background:var(--surface); color:var(--ink-2);
     font-weight:600; font-size:12px; border-bottom:1px solid var(--axis);
@@ -267,6 +278,30 @@
   tbody td:first-child{color:var(--ink)}
   .rank{color:var(--muted); font-variant-numeric:tabular-nums; width:34px; min-width:34px!important; text-align:right!important}
   .dot{display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:7px; vertical-align:-1px}
+
+  /* ---------- Magic-Farbpunkte ---------- */
+  /* Feste Slotbreite und rechts ausgerichtet: die Decknamen fangen dadurch alle
+     an derselben Stelle an, und die Punkte stehen stets direkt am Namen. */
+  .pips{
+    display:inline-flex; justify-content:flex-end; gap:2px;
+    width:52px; margin-right:8px; vertical-align:-1px; flex:none;
+  }
+  .pip{
+    width:9px; height:9px; border-radius:50%; flex:none; box-sizing:border-box;
+    border:1px solid var(--pipring);
+  }
+  .pip.pW{background:var(--cW)}
+  .pip.pU{background:var(--cU)}
+  .pip.pB{background:var(--cB)}
+  .pip.pR{background:var(--cR)}
+  .pip.pG{background:var(--cG)}
+  /* Unbekannt: ein leerer Rahmen, damit die Spalte nicht löchrig aussieht */
+  .pips-none::after{
+    content:""; width:9px; height:9px; border-radius:50%; box-sizing:border-box;
+    border:1px dashed var(--axis);
+  }
+  /* Platz für Punkte plus Name, damit der Name nicht unter die Punkte rutscht */
+  #deck-table td:first-child{min-width:240px}
   .medal{font-size:12px}
   .tscroll{max-height:520px; overflow-y:auto}
   .search{
@@ -465,6 +500,123 @@
    Solange sie leer ist, erscheint im Seitenfuß kein Link. Zum Einschalten
    einfach die Adresse zwischen die Anführungszeichen setzen. */
 var FORM_URL = "https://script.google.com/macros/s/AKfycbwBv_5ipRYhLC-13ryE0v6pvmJ_B1Z6zcLDG1CP2X6KI-H6Y5AbgNGcOkNSnp8Hb16I/exec";
+
+/* ==================== Farben aus dem Decknamen ====================
+   Vollständige Tabelle und Begründung in farbkombinationen.md.
+   Kanonische Reihenfolge ist immer WUBRG, unabhängig vom Namen.        */
+
+var COLOR_ORDER = "WUBRG";
+var COLOR_LABEL = {W:"Weiß", U:"Blau", B:"Schwarz", R:"Rot", G:"Grün"};
+
+var COLOR_WORD = {
+  white:"W", weiss:"W", "weiß":"W",
+  blue:"U", blau:"U",
+  black:"B", schwarz:"B",
+  red:"R", rot:"R",
+  green:"G", gruen:"G", "grün":"G"
+};
+
+var COLOR_COMBO = {
+  /* Gilden — zwei Farben, Ravnica */
+  azorius:"WU", dimir:"UB", rakdos:"BR", gruul:"RG", selesnya:"GW",
+  orzhov:"WB", izzet:"UR", golgari:"BG", boros:"RW", simic:"GU",
+  /* Shards — drei verbündete Farben, Alara */
+  bant:"GWU", esper:"WUB", grixis:"UBR", jund:"BRG", naya:"RGW",
+  /* Clans — drei verfeindete Farben, Tarkir */
+  abzan:"WBG", jeskai:"URW", sultai:"BGU", mardu:"RWB", temur:"GUR",
+  /* Nephilim — vier Farben, Guildpact */
+  yore:"WUBR", "yore-tiller":"WUBR",
+  glint:"UBRG", "glint-eye":"UBRG",
+  dune:"BRGW", "dune-brood":"BRGW",
+  ink:"RGWU", "ink-treader":"RGWU",
+  witch:"GWUB", "witch-maw":"GWUB",
+  /* Fünf Farben */
+  wubrg:"WUBRG", "5c":"WUBRG", "5color":"WUBRG", "5-color":"WUBRG",
+  domain:"WUBRG", "4/5c":"WUBRG"
+};
+
+/* Schreibfehler in der Mappe. Besser dort korrigieren als hier abfangen. */
+var COLOR_TYPO = {selesyna:"selesnya", azurios:"azorius"};
+
+/* Notausgang für Namen ohne Farbangabe, die nicht umbenannt werden sollen.
+   Beispiel: {"Hardened Scales":"G"} */
+var DECK_COLORS = {};
+
+var MONO_LETTER = {w:"W", u:"U", b:"B", r:"R", g:"G"};
+
+function deckColors(name){
+  if(DECK_COLORS[name]) return sortColors(DECK_COLORS[name]);
+
+  var raw = String(name).match(/[0-9A-Za-zÄÖÜäöüß/+-]+/g) || [];
+  var low = raw.map(function(t){ return t.toLowerCase().replace(/\+$/, ""); });
+  var i, t, key;
+
+  /* 1) "Mono" gefolgt von Buchstabe oder Farbwort */
+  for(i = 0; i < low.length - 1; i++){
+    if(low[i] !== "mono") continue;
+    var nx = low[i+1];
+    if(MONO_LETTER[nx]) return MONO_LETTER[nx];
+    if(COLOR_WORD[nx]) return COLOR_WORD[nx];
+  }
+
+  /* 2) Kombinationsname als ganzes Wort — nicht als Wortteil, sonst würde
+        "Yorion" als "Yore" gelesen */
+  for(i = 0; i < low.length; i++){
+    key = COLOR_TYPO[low[i]] || low[i];
+    if(COLOR_COMBO[key]) return sortColors(COLOR_COMBO[key]);
+  }
+
+  /* 3) Einzelne Farbe als Wort */
+  for(i = 0; i < low.length; i++){
+    if(COLOR_WORD[low[i]]) return COLOR_WORD[low[i]];
+  }
+
+  /* 4) Buchstabengruppe, nur bei durchgehender Großschreibung — sonst würde
+        ein Wort wie "bug" als Sultai gelesen */
+  for(i = 0; i < raw.length; i++){
+    t = raw[i].replace(/\+$/, "");
+    if(t.length >= 2 && t.length <= 5 && t === t.toUpperCase() &&
+       /^[WUBRG]+$/.test(t)){
+      return sortColors(t);
+    }
+  }
+
+  return "";                 /* unbekannt — keine Punkte */
+}
+
+function sortColors(cs){
+  var out = "", i;
+  for(i = 0; i < COLOR_ORDER.length; i++){
+    if(cs.indexOf(COLOR_ORDER[i]) !== -1) out += COLOR_ORDER[i];
+  }
+  return out;
+}
+
+/* Farbpunkte vor dem Decknamen. Jeder Punkt trägt seinen Farbnamen als
+   Titel, die Gruppe eine Beschriftung — die Farbe allein trägt die
+   Bedeutung also nicht. */
+function colorPips(name){
+  var cs = deckColors(name);
+  var wrap = document.createElement("span");
+  wrap.className = "pips";
+  if(!cs){
+    wrap.classList.add("pips-none");
+    wrap.title = "Farben aus dem Namen nicht erkennbar";
+    wrap.setAttribute("aria-label", "Farben unbekannt");
+    return wrap;
+  }
+  var words = [];
+  for(var i = 0; i < cs.length; i++){
+    var p = document.createElement("i");
+    p.className = "pip p" + cs[i];
+    p.title = COLOR_LABEL[cs[i]];
+    wrap.appendChild(p);
+    words.push(COLOR_LABEL[cs[i]]);
+  }
+  wrap.setAttribute("aria-label", words.join(", "));
+  wrap.title = words.join(", ");
+  return wrap;
+}
 
 /* ============================ Daten ============================ */
 var RAW = JSON.parse(document.getElementById("data").textContent);
@@ -1121,9 +1273,7 @@ var deckTable = makeTable({
   match: function(r, q){ return r.name.toLowerCase().indexOf(q) >= 0; },
   cols: [
     {key:"name", label:"Deck", asc:true, cell:function(td,r){
-      var dot = document.createElement("span"); dot.className = "dot";
-      dot.style.background = "var(--s1)"; dot.style.opacity = String(Math.max(.22, Math.min(1, r.share*7)));
-      td.appendChild(dot);
+      td.appendChild(colorPips(r.name));
       td.appendChild(document.createTextNode(r.name));
     }},
     {key:"share", label:"Anteil", cell:function(td,r){ txt(td, pct(r.share,2)); }},
