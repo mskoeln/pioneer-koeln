@@ -385,6 +385,7 @@
   </ul>
   <h4>Datenstand</h4>
   <p id="footdata" style="margin:0"></p>
+  <p id="footlink" class="hidden" style="margin:14px 0 0"></p>
 </footer>
 
 </div>
@@ -395,6 +396,12 @@
 <script>
 (function(){
 "use strict";
+
+/* ============================ Einstellungen ============================ */
+/* Adresse des Eingabeformulars (Google Apps Script, endet auf /exec).
+   Solange sie leer ist, erscheint im Seitenfuß kein Link. Zum Einschalten
+   einfach die Adresse zwischen die Anführungszeichen setzen. */
+var FORM_URL = "";
 
 /* ============================ Daten ============================ */
 var RAW = JSON.parse(document.getElementById("data").textContent);
@@ -1498,6 +1505,23 @@ document.getElementById("lede").textContent =
   nf(uniq(ALL_DATES).length) + " Turniere von " + deDate(FIRST) + " bis " + deDate(LAST) + " · " +
   nf(RAW.length) + " Einzelergebnisse · " + nf(aggPlayers(RAW).length) + " Spieler · " +
   nf(aggDecks(RAW).list.length) + " Decks.";
+
+/* Link zum Eingabeformular — nur wenn eine Adresse hinterlegt ist. Der Link ist
+   für alle sichtbar; wer nicht angemeldet ist, sieht bei Google eine
+   Zugriffsmeldung. Die Absicherung liegt dort, nicht in der Sichtbarkeit. */
+(function(){
+  if(!FORM_URL) return;
+  var p = document.getElementById("footlink");
+  var a = document.createElement("a");
+  a.href = FORM_URL;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.textContent = "Turnier erfassen";
+  a.style.color = "var(--s1)";
+  p.appendChild(a);
+  p.appendChild(document.createTextNode(" — nur für Organisatoren, Anmeldung über Google."));
+  p.classList.remove("hidden");
+})();
 
 document.getElementById("footdata").textContent =
   "Letztes erfasstes Turnier: " + deDate(LAST) + ". " +
